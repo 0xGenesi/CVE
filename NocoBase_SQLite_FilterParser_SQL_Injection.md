@@ -86,10 +86,9 @@ Result:
 +--------------------+------------------------------------------------------------------+
 | admin@nocobase.com | 2f884850763fff97342c994f83ee45a9806c291e02a0ccc9e4da9476cad5ecde |
 +--------------------+------------------------------------------------------------------+
-
-![sqlmap dump result](NocoBase_SQLite_FilterParser_SQL_Injection_poc.png)
-+--------------------+------------------------------------------------------------------+
 ```
+![sqlmap dump result](NocoBase_SQLite_FilterParser_SQL_Injection_poc.png)
+
 
 #### Manual Boolean-based Blind Injection
 
