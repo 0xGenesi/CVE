@@ -69,7 +69,25 @@ Using the injected private key, the attacker computes the `roomId_userId` signat
 
 ![Chitchatter key injection evidence](Chitchatter_SDK_postMessage_Identity_Key_Injection_poc.png)
 
-### Impact
+### Real-Environment Verification (2026-10-06)
+
+Re-verified in a **real browser session** (Chromium) against a real Chitchatter dev server (`jeremyckahn/chitchatter` @ develop). A cross-origin attacker parent page (`http://127.0.0.1:9999`) embedded the victim's room as an iframe with `?getSdkConfig=&parentDomain=http%3A%2F%2F127.0.0.1%3A9999&embed=true`:
+
+```
+[parent] iframe asked for config (configRequested) — injecting ATTACKER keys
+[parent] config posted: attacker ECDSA P-256 keypair + attacker userId + customUsername
+[parent] SECOND config posted — live re-key without any user consent
+
+# in-iframe probe: message received with
+#   { origin: 'http://127.0.0.1:9999', name: 'config' }
+#   -> matches isConfigMessageEvent() acceptance exactly (src/models/sdk.ts:44-61)
+```
+
+Observed result: the embedded client accepted the attacker-supplied key material and applied the injected identity — the session's "Your username" field showed the attacker-chosen value, and the iframe established an encrypted peer-to-peer session with a second (victim) peer in the same room using the attacker-controlled identity keys. No signature, consent, or key-pinning check exists anywhere on the path (`Bootstrap.tsx:158-172` pre-render merge, `Bootstrap.tsx:197-215` live-merge). A malicious embed host therefore controls — and can silently replace — the E2EE identity keying of every session it serves.
+
+![Real-environment verification](RealEnv_chitchatter.png)
+
+## Impact
 
 A victim who visits a single attacker-controlled web page has their Chitchatter identity keys silently and persistently replaced. Consequences: the attacker can impersonate the victim in end-to-end encrypted rooms (their messages appear identity-verified to other participants), and the confidentiality guarantee of the E2E layer is broken for the victim because the attacker now holds the corresponding private key. The replacement survives page reloads (IndexedDB persistence), so the victim remains compromised after leaving the attacker page.
 

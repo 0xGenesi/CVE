@@ -98,7 +98,11 @@ After a backend restart (e.g. an admin-triggered update), `PluginLoader.loadAll`
 
 ![Termix transferToHost evidence](Termix_FileManager_transferToHost_Arbitrary_File_Write_poc.png)
 
-### Impact
+### Real-Environment Verification (2026-10-06)
+
+Partial re-verification against the real product: the **official release-2.9.1 image was built from source and booted** (34 plugins active, backend healthy), and the `/plugin-api/file-manager/transferToHost` endpoint at `release-2.9.1` (`plugins/file-manager/src/backend/index.ts:2150`) was confirmed to match the reported behavior — it accepts caller-supplied `destSessionId`/`destPath` and transfers to whatever host/credentials the session carries (`src/backend/transfer-engine.ts` routes to `pipelinedSftpFile` when the destination is not the local endpoint, with no restriction on the destination host being pre-registered or trusted). The full multi-hop transfer chain (two live SSH sessions + SOCKS5 pivot) was not re-driven in this lab round; the sandbox harness verification in the POC section remains the dynamic evidence of record for the write primitive.
+
+## Impact
 
 Any authenticated Termix user gains arbitrary file create/overwrite on the Termix server with backend-process privileges: planting executable unsigned plugins (code execution at next load), overwriting `DATA_DIR/.env` to control `JWT_SECRET`/`ENCRYPTION_KEY` and forge administrator JWTs (complete instance takeover, including decryption of all managed SSH credentials stored on the instance), and corrupting databases. In Docker deployments running with PUID=0, writes to `/etc/cron.d/` or `/root/.ssh/authorized_keys` yield direct root-level persistent code execution without a restart.
 

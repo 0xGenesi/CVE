@@ -78,7 +78,26 @@ Executed in an isolated environment with the real Python `ssl` stack:
 
 ![ws4py TLS interception evidence](WebSocket_for_Python_wss_TLS_Certificate_Validation_Disabled_by_Default_poc.png)
 
-### Impact
+### Real-Environment Verification (2026-10-06)
+
+Re-verified with the **unmodified repository code** (`ws4py` @ master) as the client, against a real `wss://` server presenting an attacker-controlled self-signed certificate (CN=`evil-mitm.example.com`, unknown CA, invalid for the contacted hostname):
+
+```
+[contrast] python default TLS policy -> handshake REJECTED as expected:
+           self-signed certificate (code 18)
+
+[server] TLS established; negotiated cipher: TLS_AES_256_GCM_SHA384
+[server] upgrade handshake completed — attacker now has a trusted encrypted channel
+[client] connection opened() — ws4py accepted the self-signed certificate
+[server] received client frame: b'\x81\x91\xcd\x06A\xf1...'   <- victim's masked frame
+[client] received_message from attacker: 'MITM: your traffic is mine'
+```
+
+With no `ssl_options` set, the ws4py client completed the full TLS + WebSocket upgrade handshake against the impostor certificate and exchanged application messages in both directions — machine-in-the-middle position confirmed. The default-policy contrast on the same endpoint rejects the identical certificate.
+
+![Real-environment verification](RealEnv_ws4py.png)
+
+## Impact
 
 Any application using ws4py's default client options over `wss://` — the protocol whose entire purpose is transport protection — is transparently interceptable by a network-positioned attacker: authentication material sent in the handshake (tokens, cookies, API keys) is captured in plaintext, and all subsequent application traffic can be read, modified, or forged. Because the failure is silent (the connection succeeds normally), victims have no indication of compromise. Since ws4py is widely embedded as a WebSocket client library (last PyPI release 0.5.1, master at 0.6.0), downstream applications inherit the insecure default without any code of their own being wrong.
 

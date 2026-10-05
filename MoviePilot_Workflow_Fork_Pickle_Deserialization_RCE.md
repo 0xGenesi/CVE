@@ -63,6 +63,26 @@ Harness output (exit code 0):
 [VULN] pickle.loads() at app/chain/workflow.py:365 executed attacker-controlled object
 ```
 
-### Impact
+### Real-Environment Verification (2026-10-06)
+
+The deserialization sink was re-verified against the **real repository code** (unmodified clone of `jxxghp/MoviePilot` @ main, commit `df45df8`), driving the production `WorkflowExecutor.restore_context()` method (`app/chain/workflow.py:354-373`) with a workflow snapshot whose persisted `context.content` carried the base64 pickle payload:
+
+```
+$ python rce_test.py
+[attacker] crafted pickle payload (base64, 224 chars) -> workflow.context.content
+[victim] WorkflowExecutor.restore_context() — unpickling attacker-controlled context...
+[victim] __init__ crashed on self.context == <int> — context was replaced by
+         os.system's return value during pickle.loads: pickle EXECUTED.
+
+--- canary file /tmp/realverify/evidence/MoviePilot/pwned.txt ---
+uid=501(0xgenesi) gid=20(staff) groups=20(staff),12(everyone),61(localaccounts),...
+RCE-as-0xgenesi
+```
+
+`os.system()` executed inside the real `restore_context()` during workflow startup; the "crash" shown above is itself proof — `self.context` was replaced by `os.system`'s integer return value because `pickle.loads()` instantiated the attacker object. Command execution as the MoviePilot service user is confirmed end-to-end.
+
+![Real-environment verification](RealEnv_MoviePilot.png)
+
+## Impact
 
 An authenticated manage-level user (a role MoviePilot's multi-user model grants to family members) can persist an arbitrary command-execution primitive in the database: every subsequent execution of the poisoned workflow re-triggers the payload, acting as a persistent backdoor. The compromised process can exfiltrate media-server API keys, downloader credentials and the user database, and pivot into the internal network (PT sites, downloaders, media servers). While exploitation requires management-level authentication rather than anonymous access, the deserialization itself runs unsandboxed, so a stolen or low-trust manage account escalates directly to host-level code execution.

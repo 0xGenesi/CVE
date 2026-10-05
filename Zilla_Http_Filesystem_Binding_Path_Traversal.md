@@ -71,6 +71,32 @@ Two scenarios reproducing `FileSystemServerFactory`'s exact resolution logic:
 - `PUT` overwrites an arbitrary file after obtaining the target's ETag via a traversal `GET` (the `If-Match` optimistic-lock check is satisfied by the same traversal read).
 - `DELETE` with a traversal target deletes an arbitrary file.
 
+### Real-Environment Verification (2026-10-06)
+
+Re-verified against the **official `ghcr.io/aklivity/zilla:latest` container** running the `http.filesystem` example binding (`location: /var/www/`), with a canary file planted outside the webroot at `/var/secret.txt`:
+
+```
+$ curl -s --path-as-is http://127.0.0.1:7114/index.html          # baseline
+<html>legit index served by zilla</html>
+
+$ curl -s --path-as-is -i http://127.0.0.1:7114/../secret.txt
+HTTP/1.1 200 OK
+Content-Length: 33
+TOPSECRET-zilla-traversal-canary
+
+$ curl -s --path-as-is -i http://127.0.0.1:7114/../../etc/zilla/zilla.yaml
+HTTP/1.1 200 OK
+Content-Length: 771
+---
+name: example
+bindings:
+  north_tcp_server: ...
+```
+
+Raw dot-dot request paths pass through the `http-filesystem` mapping's `${params.path}` and escape the configured root: an arbitrary file anywhere reachable by the zilla process (including its own configuration) is returned with HTTP 200. URL-encoded variants are normalized (404) — the bypass requires the raw request path, which browsers and most clients normalize but raw sockets do not.
+
+![Real-environment verification](RealEnv_zilla.png)
+
 ### Impact
 
 An unauthenticated remote attacker can read arbitrary files readable by the Zilla process (credentials, private keys, `/proc/self/environ`), create files, overwrite existing files, and delete files — limited only by the process's filesystem permissions. In multi-tenant deployments where a route parameter maps to `with.directory`, the traversal breaks tenant isolation (cross-tenant read/write/delete). In containerized deployments, writing cron jobs, `authorized_keys`, or application configuration can escalate to remote code execution.

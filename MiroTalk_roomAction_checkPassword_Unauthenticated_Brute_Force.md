@@ -110,7 +110,27 @@ socket.on('roomAction', (data) => {
 
 ![MiroTalk brute force evidence](MiroTalk_roomAction_checkPassword_Unauthenticated_Brute_Force_poc.png)
 
-### Impact
+### Real-Environment Verification (2026-10-06)
+
+Re-verified against **real MiroTalk 2.1.24** (source @ `af158e6`, 2026-10-05, running server). A victim client joined a room and locked it with a strong 14-character password; a second socket.io client that **never joined the room** probed the oracle:
+
+```
+[victim] room 'demoroom' locked with password (len=14)
+[attacker] connected (never joined the room)
+[attacker] guess # 1 "1234"        -> KO
+[attacker] guess # 2 "admin"       -> KO
+...
+[attacker] guess #10 "Zx!9vT#2Kq$7Wm" -> OK
+[attacker] PASSWORD RECOVERED in 10 attempts / 4 ms
+[attacker] roomAction unlock -> server log: Room demoroom { locked: false, ... }
+[attacker] joined the room with the recovered password
+```
+
+The `checkPassword` oracle answers OK/KO to any connected socket with no rate limit, no lockout, and no room-membership requirement, and the recovered password was used to unlock and join the room. Server-side logs confirm the unlock succeeded.
+
+![Real-environment verification](RealEnv_mirotalk.png)
+
+## Impact
 
 An unauthenticated remote attacker can enter any active password-protected (locked) MiroTalk room. The room lock is the product's only meeting-privacy mechanism, so this breaks meeting confidentiality: the attacker joins with full participant capabilities — receiving audio/video/screen-share streams and chat — effectively crashing private meetings (board calls, telehealth sessions, online classes). Because the oracle has no rate limit and each guess is a cheap in-memory string comparison, even long passwords fall to offline-speed cracking (the harness sustained ~3M comparisons/second of handler logic); realistic network speeds still exhaust 6-digit spaces in minutes.
 

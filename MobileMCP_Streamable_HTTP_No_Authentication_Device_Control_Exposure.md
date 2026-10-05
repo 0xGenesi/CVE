@@ -78,7 +78,27 @@ curl -X POST http://TARGET:3000/mcp \
 
 ![mobile-mcp unauthenticated access evidence](MobileMCP_Streamable_HTTP_No_Authentication_Device_Control_Exposure_poc.png)
 
-### Impact
+### Real-Environment Verification (2026-10-06)
+
+Re-verified against **real mobile-mcp** (source @ main, v0.0.1, built and run with `--listen 127.0.0.1:31200`):
+
+```
+$ node lib/index.js --listen 127.0.0.1:31200
+WARNING: MOBILEMCP_AUTH is not set. The HTTP server will accept unauthenticated
+connections. Set MOBILEMCP_AUTH to require Bearer token authentication.
+mobile-mcp 0.0.1 streamable http server listening on http://127.0.0.1:31200/mcp
+
+$ curl -s -X POST http://127.0.0.1:31200/mcp -H 'Content-Type: application/json'     -H 'Accept: application/json, text/event-stream'     -d '{"jsonrpc":"2.0","id":2,"method":"tools/call",
+         "params":{"name":"mobile_list_available_devices","arguments":{}}}'
+event: message
+data: {"result":{"content":[{"type":"text","text":"{\"devices\":[],...}"}]},"jsonrpc":"2.0","id":2}
+```
+
+A real `tools/call` executed and returned a real tool result with **no Authorization header** — the full MCP device-control tool surface (screenshots, taps, input, shell on attached devices) is exposed to any unauthenticated network peer by default. Note: current main adds an **opt-in** `MOBILEMCP_AUTH` bearer token; the default deployment posture remains unauthenticated, so the finding and remediation guidance stand.
+
+![Real-environment verification](RealEnv_mobile-mcp.png)
+
+## Impact
 
 An unauthenticated network attacker gains complete control of every mobile device connected to the exposed mobile-mcp server: installing and uninstalling applications (including malware), opening arbitrary URLs/deep links, injecting keystrokes and UI interactions, reading and writing the clipboard (capturing copied passwords and tokens), spoofing GPS location, capturing screenshots, and recording the screen — full surveillance and compromise of the attached phones (Android and iOS, physical and emulator/simulator).
 

