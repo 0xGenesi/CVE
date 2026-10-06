@@ -78,6 +78,9 @@ Harness results:
 [DETECTED] 修复后真实双引号数=2 (payload 被困在字面量内, 仅作子串匹配)
 ```
 
+![Verification output](AiSOC_federated_search_esql_injection_poc.png)
+
+
 Injected pipeline clauses verified to execute against a live Elasticsearch `_query` endpoint include second `WHERE` predicates (time-window bypass), `EVAL severity = "info"` (result forgery), `ENRICH`/`LOOKUP JOIN` (internal policy data exfiltration), and `LIMIT 9999` (bulk extraction).
 
 ### Impact
@@ -89,5 +92,3 @@ Any tenant user holding `connectors:read` can execute arbitrary ES|QL pipeline q
 1. Escape `free_text` through the same quote function used by the other three dialect translators before interpolating it into the ES|QL `LIKE` predicate; reject values containing unescaped quotes.
 2. Prefer parameterized queries / the Elasticsearch ES|QL parameter binding API over string interpolation.
 3. Run the connectors microservice under a dedicated Elasticsearch role limited to the indices and operations the search feature actually needs (no `DROP`, no cluster-level administration).
-
-![Verification output](AiSOC_federated_search_esql_injection_poc.png)

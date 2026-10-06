@@ -77,6 +77,9 @@ GET /history
 Cookie: auth=<forged_jwt>
 ```
 
+![Verification output](ConvertX_hardcoded_jwt_secret_auth_bypass_poc.png)
+
+
 Observed: the request is accepted as user `id=1` (owner) — history enumeration, file download (`/download/1/<jobId>/<fileName>` under `data/output/1/...`), archive download, account page (email disclosure), and job deletion (`POST /delete/:jobId` removes the victim's files via `rmSync`) all succeed exactly as for the legitimate owner.
 
 ### Impact
@@ -88,5 +91,3 @@ On any instance deployed per the official documentation without customizing `JWT
 1. Remove the published default from `README.md` and `compose.yaml`; generate a random secret on first start when `JWT_SECRET` is unset and refuse to boot if it still equals the published string.
 2. Invalidate all existing sessions after the secret changes and warn operators whose secret matches the known default.
 3. Consider binding sessions to a server-side session store instead of stateless HS256 cookies so credential lifetimes can be revoked centrally.
-
-![Verification output](ConvertX_hardcoded_jwt_secret_auth_bypass_poc.png)
