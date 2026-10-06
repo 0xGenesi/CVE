@@ -1,5 +1,14 @@
 # Knip Workspaces Configuration Path Traversal Leading to Arbitrary File Deletion and Overwrite via `knip --fix`
 
+| Field | Value |
+|---|---|
+| Project | webpro/knip |
+| Vulnerability Type | Path Traversal (CWE-22), External Control of File Name or Path (CWE-73) |
+| Severity | High — CVSS 3.1 Base Score: 8.3 |
+| CVSS Vector | AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:H/A:H |
+| Affected Versions | <= 6.39.0 (verified on 6.39.0, latest npm release as of 2026-10-05) |
+| Authentication | None — victim runs knip --fix on an attacker-crafted repository |
+
 ### Summary
 
 Knip (webpro-nl/knip, `main` branch) was confirmed vulnerable to a path traversal in the `workspaces` configuration that lets a malicious repository delete and overwrite files outside the repository when the victim runs `knip --fix`. A `package.json` or `knip.json` workspace key such as `../victim-external` is joined to the working directory without any boundary validation (ConfigurationChief.ts:196), the glob layer then scans outside the repository (`../`-prefixed patterns are passed through to tinyglobby), and the files found there are reported as unused-file issues. With `--fix`, `IssueFixer` executes `rm(issue.filePath)` on each — deleting files outside the repo — and `writeFile(join(cwd, filePath))` overwrites out-of-repo file contents.

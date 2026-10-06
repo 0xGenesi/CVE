@@ -1,5 +1,14 @@
 # MCPHub v1.0.45 OpenAPI passthroughHeaders Credential Exfiltration
 
+| Field | Value |
+|---|---|
+| Project | samanhappy/mcphub |
+| Vulnerability Type | Exposure of Sensitive Information to an Unauthorized Actor (CWE-200) |
+| Severity | High — CVSS 3.1 Base Score: 7.3 |
+| CVSS Vector | AV:N/AC:L/PR:L/UI:R/S:U/C:H/I:H/A:N |
+| Affected Versions | <= v1.0.45 (verified on v1.0.45, latest release as of 2026-10-05) |
+| Authentication | Required — attacker needs a non-admin user account; victim (any user incl. admin) calls a tool on the trap server |
+
 ### Summary
 
 MCPHub (samanhappy/mcphub, v1.0.45) was confirmed vulnerable to credential exfiltration through the `passthroughHeaders` option of OpenAPI-type MCP servers. A non-privileged user can register an OpenAPI server whose `openapi.url` points to an attacker-controlled endpoint and whose `openapi.passthroughHeaders` list includes authentication headers such as `Authorization`, `Cookie`, and `X-Api-Key`. When any higher-privileged user (including the administrator) calls a tool on that server, MCPHub copies those headers — verbatim from the caller's own authenticated request — into the outbound request to the attacker's endpoint. There is no denylist protecting session credentials.

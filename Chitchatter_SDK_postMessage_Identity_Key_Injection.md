@@ -1,5 +1,14 @@
 # Chitchatter SDK postMessage Config Injection Identity Takeover
 
+| Field | Value |
+|---|---|
+| Project | jeremyckahn/chitchatter |
+| Vulnerability Type | Origin Validation Error (CWE-346), Insufficient Verification of Data Authenticity (CWE-345) |
+| Severity | High — CVSS 3.1 Base Score: 8.1 |
+| CVSS Vector | AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N |
+| Affected Versions | develop @ 23b62a8 (no tagged releases; embed path live on chitchatter.im as of 2026-10-05) |
+| Authentication | None — attacker-controlled embed host; no consent or key pinning on the config path |
+
 ### Summary
 
 Chitchatter (jeremyckahn/chitchatter, `develop` branch) was confirmed vulnerable to a config-injection attack against its embedded SDK bridge that silently replaces a user's cryptographic identity keys. The `isConfigMessageEvent` origin check in src/models/sdk.ts derives the expected parent origin from the `parentDomain` URL query parameter — a value the embedding page (or an attacker-controlled embedder) fully controls. A malicious page can therefore iframe the Chitchatter app with `parentDomain` pointing at its own origin, satisfy the origin check trivially, and deliver a `config` postMessage whose payload contains attacker-generated RSA `CryptoKey` objects. Chitchatter merges the payload into `UserSettings` and persists the replaced identity keys in IndexedDB.

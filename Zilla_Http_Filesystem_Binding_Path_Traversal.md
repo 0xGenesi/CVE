@@ -1,5 +1,14 @@
 # Zilla http-filesystem Binding Unauthenticated Path Traversal
 
+| Field | Value |
+|---|---|
+| Project | aklivity/zilla |
+| Vulnerability Type | Path Traversal (CWE-22), External Control of File Name or Path (CWE-73) |
+| Severity | Critical — CVSS 3.1 Base Score: 9.8 |
+| CVSS Vector | AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H |
+| Affected Versions | <= 2.4.7 (verified on 2.4.7, latest release as of 2026-10-05) |
+| Authentication | None (default filesystem-binding deployment) |
+
 ### Summary
 
 Zilla (aklivity/zilla), an event-driven API gateway, was confirmed vulnerable to unauthenticated server-side path traversal in its `http-filesystem` binding. HTTP request path data captured by greedy route patterns (for example `/{path}`, compiled to `(?<path>.+)`) is substituted into `with.path`/`with.directory` templates without validation, then joined to the configured filesystem root using `URI.resolve()` and `Path.resolve()` in `FileSystemServerFactory`. The chain lacks path normalization and root containment checks, so an unauthenticated remote attacker can read, create, overwrite, and delete arbitrary files reachable by the Zilla process.

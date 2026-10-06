@@ -1,5 +1,14 @@
 # Mobile-MCP Streamable HTTP Server Missing Authentication Exposes Full Mobile-Device Control
 
+| Field | Value |
+|---|---|
+| Project | mobile-next/mobile-mcp |
+| Vulnerability Type | Missing Authentication for Critical Function (CWE-306) |
+| Severity | Critical — CVSS 3.1 Base Score: 9.8 |
+| CVSS Vector | AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H |
+| Affected Versions | <= 0.0.1 (verified on main @ 2c6413c, latest as of 2026-10-05) |
+| Authentication | None (default deployment; MOBILEMCP_AUTH is opt-in and unset by default) |
+
 ### Summary
 
 mobile-mcp (mobile-next/mobile-mcp, `main` branch) was confirmed vulnerable to missing authentication (CWE-306) in its Streamable HTTP server mode. When the `MOBILEMCP_AUTH` environment variable is not set, the server only prints a console warning and registers no authentication middleware at all — every HTTP request reaches the MCP tool surface at `POST /mcp`. The official README recommends deploying with `--listen 0.0.0.0:3000`; combined with the unset-variable default, this exposes approximately 30 device-control tools (app install/uninstall, URL opening, key injection, clipboard access, location spoofing, screenshots, screen recording, and more) to any network-reachable attacker, with no credentials.

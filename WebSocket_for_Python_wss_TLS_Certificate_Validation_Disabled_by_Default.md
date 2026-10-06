@@ -1,5 +1,14 @@
 # WebSocket-for-Python (ws4py) wss Client TLS Certificate and Hostname Verification Disabled by Default
 
+| Field | Value |
+|---|---|
+| Project | Lawouach/WebSocket-for-Python |
+| Vulnerability Type | Improper Certificate Validation (CWE-295) |
+| Severity | High — CVSS 3.1 Base Score: 8.1 |
+| CVSS Vector | AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N |
+| Affected Versions | <= 0.5.1 (latest PyPI release) and 0.6.0 / master @ 21dc60e (verified on both) |
+| Authentication | None — requires a man-in-the-middle network position |
+
 ### Summary
 
 WebSocket-for-Python (Lawouach/WebSocket-for-Python, ws4py through 0.6.0 / master branch) was confirmed vulnerable to man-in-the-middle interception of `wss://` connections because the client disables both TLS certificate verification and hostname checking by default. In `WebSocketBaseClient.connect()`, unless the caller explicitly passes `ssl_options` containing `cert_reqs`, the client sets `check_hostname = False` and `verify_mode = ssl.CERT_NONE` before wrapping the socket. A network-positioned attacker can therefore present any self-signed certificate — no trusted CA, no matching hostname required — and terminate the victim's TLS connection.

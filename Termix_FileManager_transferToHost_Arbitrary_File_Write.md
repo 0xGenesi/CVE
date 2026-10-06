@@ -1,5 +1,14 @@
 # Termix 2.9.1 File-Manager transferToHost Arbitrary File Write on the Termix Server
 
+| Field | Value |
+|---|---|
+| Project | Termix-SSH/Termix |
+| Vulnerability Type | External Control of File Name or Path (CWE-73), Improper Authorization (CWE-285) |
+| Severity | High — CVSS 3.1 Base Score: 8.8 |
+| CVSS Vector | AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H |
+| Affected Versions | <= 2.9.1 (verified on release-2.9.1-tag, latest release as of 2026-10-05) |
+| Authentication | Required — any authenticated Termix user (file-manager plugin) |
+
 ### Summary
 
 Termix (Termix-SSH/Termix, release-2.9.1-tag) was confirmed vulnerable to an arbitrary file write on the Termix server itself, performed with the privileges of the Termix backend process, by any authenticated Termix user. The file-manager plugin decides whether a transfer destination is "the local Termix host" purely by comparing the session's recorded `ip` string against loopback literals (`isLocalSshEndpoint`). That recorded IP is taken verbatim from the attacker's own `POST /plugin-api/file-manager/connect` request, while the actual SSH connection can be routed through an attacker-controlled SOCKS5 proxy — so a session declared as `127.0.0.1` actually connects to the attacker's server, yet is treated as the Termix machine itself. A subsequent `transferToHost` with an unvalidated `destPath` then writes attacker-supplied files anywhere on the Termix server filesystem.

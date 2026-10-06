@@ -1,5 +1,14 @@
 # MoviePilot v3 Workflow Fork API Pickle Deserialization RCE
 
+| Field | Value |
+|---|---|
+| Project | jxxghp/MoviePilot |
+| Vulnerability Type | Deserialization of Untrusted Data (CWE-502) |
+| Severity | High — CVSS 3.1 Base Score: 8.8 |
+| CVSS Vector | AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H |
+| Affected Versions | <= v3.1.1 (verified on v3.1.1, latest release as of 2026-10-05) |
+| Authentication | Required — any authenticated user via the workflow fork API |
+
 ### Summary
 
 MoviePilot v3 (branch `v3`, https://github.com/jxxghp/MoviePilot) was confirmed vulnerable to unsafe deserialization in the workflow executor. The `WorkflowExecutor.restore_context()` routine base64-decodes the persisted `workflow.context["content"]` column and passes it directly to `pickle.loads()` without any HMAC signature check, restricted `Unpickler`, or type allowlist. The same column is writable by any authenticated user holding the `permissions.manage` flag through `POST /api/v1/workflow/fork`, whose only content validation is a JSON syntax parse.

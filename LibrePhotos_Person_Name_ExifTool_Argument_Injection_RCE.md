@@ -1,5 +1,14 @@
 # LibrePhotos 1.2.1 ExifTool Argument Injection via Person Name RCE
 
+| Field | Value |
+|---|---|
+| Project | LibrePhotos/librephotos |
+| Vulnerability Type | Argument Injection or Modification (CWE-88) |
+| Severity | High — CVSS 3.1 Base Score: 8.8 |
+| CVSS Vector | AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H |
+| Affected Versions | <= 1.2.1 (verified on 1.2.1, latest release as of 2026-10-05) |
+| Authentication | Required — any authenticated user (face-tag metadata write path) |
+
 ### Summary
 
 LibrePhotos 1.2.1 (https://github.com/LibrePhotos/librephotos) was confirmed vulnerable to argument injection in the metadata write-back path. `write_metadata` (`apps/backend/api/metadata/writer.py:27-36`) builds ExifTool command-line arguments via string interpolation (`f"-{tag}={value}"`) and hands them to PyExifTool 0.4.9 (pinned in `requirements.txt`). PyExifTool 0.4.9's `execute()` joins the argument batch with newlines when writing to the stdin of a `exiftool -stay_open True -@ -` process — so any newline inside a value splits it into separate command-line options.

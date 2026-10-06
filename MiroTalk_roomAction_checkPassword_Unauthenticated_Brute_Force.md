@@ -1,5 +1,14 @@
 # MiroTalk roomAction checkPassword Unauthenticated Room-Password Brute Force
 
+| Field | Value |
+|---|---|
+| Project | miroslavpejic85/mirotalk |
+| Vulnerability Type | Improper Restriction of Excessive Authentication Attempts (CWE-307) |
+| Severity | High — CVSS 3.1 Base Score: 8.2 |
+| CVSS Vector | AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N |
+| Affected Versions | <= 2.1.24 (verified on 2.1.24, latest release as of 2026-10-05) |
+| Authentication | None — any connected socket.io client, room membership not required |
+
 ### Summary
 
 MiroTalk (miroslavpejic85/mirotalk, master branch) was confirmed vulnerable to an unauthenticated, unlimited-speed brute force of room-lock passwords through the Socket.IO `roomAction` handler's `checkPassword` action. Every other action in the handler requires the presenter role, but `checkPassword` performs no membership, role, or credential check: it compares the supplied password against the room's lock password and returns an `OK`/`KO` oracle to the requester. A single unauthenticated client can therefore guess passwords at high concurrency and then join the locked private meeting with the cracked password.
