@@ -71,11 +71,11 @@ payload = '%" OR 1=1 //'
 Harness results:
 
 ```
-[VULN] 注入逃逸成功: 攻击者内容出现在字符串字面量之外, 构成新的 ES|QL 管道子句!
-[DETECTED] 结果: 6/7 个恶意 payload 成功注入任意 ES|QL 管道子句
-[VULN] to_esql() 第73行 free_text 未经 _esql_quote() 转义直接 f-string 拼接
-[VULN] 而 indicator 路径(esql.py:39-62)全部使用 _esql_quote(), 证实 free_text 为遗漏路径
-[DETECTED] 修复后真实双引号数=2 (payload 被困在字面量内, 仅作子串匹配)
+[VULN] injection escaped: attacker content appears outside the string literal, forming a new ES|QL pipeline clause
+[DETECTED] result: 6/7 malicious payloads successfully injected arbitrary ES|QL pipeline clauses
+[VULN] to_esql() line 73 interpolates free_text via raw f-string without _esql_quote() escaping
+[VULN] the indicator path (esql.py:39-62) consistently uses _esql_quote(), confirming free_text is the missed path
+[DETECTED] after fix: raw double-quote count = 2 (payload trapped inside the literal, substring match only)
 ```
 
 ![Verification output](AiSOC_federated_search_esql_injection_poc.png)
