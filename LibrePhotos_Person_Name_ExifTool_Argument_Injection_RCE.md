@@ -97,7 +97,7 @@ RCE-as-0xgenesi
 
 The newline-laden person name is transmitted as separate exiftool arguments over PyExifTool's stay-open stdin channel; exiftool evaluates the smuggled `-if <perl>` expression and `system()` runs on the LibrePhotos backend host. Arbitrary command execution via the face-tag write path is confirmed end-to-end.
 
-![Real-environment verification](RealEnv_librephotos.png)
+![Real-environment verification](LibrePhotos_exiftool_argument_injection_rce.png)
 
 ## Impact
 

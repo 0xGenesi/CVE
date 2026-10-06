@@ -6,7 +6,7 @@
 | Vulnerability Type | Exposure of Sensitive Information to an Unauthorized Actor (CWE-200) |
 | Severity | High — CVSS 3.1 Base Score: 7.3 |
 | CVSS Vector | AV:N/AC:L/PR:L/UI:R/S:U/C:H/I:H/A:N |
-| Affected Versions | <= v1.0.45 (verified on v1.0.45, latest release as of 2026-10-05) |
+| Affected Versions | <= v1.1.0 (verified on v1.0.45; the v1.1.0 code diff introduces no header denylist) |
 | Authentication | Required — attacker needs a non-admin user account; victim (any user incl. admin) calls a tool on the trap server |
 
 ### Summary
@@ -130,13 +130,13 @@ Host: httpbin.org <- attacker-chosen destination
 
 All three credential classes configured by the attacker arrived verbatim at the attacker-chosen public endpoint. Additional v1.0.45 observations: self-registration is currently broken (`/api/auth/register` is shadowed by the global auth gate — `isApiAuthExemptPath` exempts only `/auth/login`), so multi-user instances provision users out-of-band; and `POST /api/tools/call/:server` is shadowed by the OpenAPI bridge route `/api/tools/:serverName/:toolName`. Neither affects the vulnerability.
 
-![Real-environment verification](RealEnv_mcphub.png)
+![Real-environment verification](mcphub_passthroughheaders_credential_exfiltration.png)
 
 ## Impact
 
 A low-privileged user can silently harvest the session credentials of any user who invokes tools on the trap server — up to and including the administrator's Bearer key and better-auth session cookie. Because possession of an admin Bearer key is treated as `isAdmin: true` in auth.ts, the stolen credentials enable full administrator account takeover: rewriting global security configuration, reading all users' data, and (through admin-installed stdio servers) remote code execution on the Hub host. The attack requires no user interaction beyond the victim calling a tool that appears legitimate in the dashboard.
 
-Verified on v1.0.45 via harness execution of the real collection and forwarding logic. Fixed versions: none confirmed at reporting time. Related but distinct from the previously published environment-variable placeholder exposure: this issue concerns request-header passthrough at tool-call time.
+Verified on v1.0.45 via harness execution of the real collection and forwarding logic. Fix status: none as of v1.1.0 (latest release) — the v1.0.45 to v1.1.0 diff of `src/services/mcpService.ts` adds no header denylist. Related but distinct from the previously published environment-variable placeholder exposure: this issue concerns request-header passthrough at tool-call time.
 
 ### Remediation
 

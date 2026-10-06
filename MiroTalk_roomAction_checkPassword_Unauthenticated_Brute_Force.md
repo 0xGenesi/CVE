@@ -6,7 +6,7 @@
 | Vulnerability Type | Improper Restriction of Excessive Authentication Attempts (CWE-307) |
 | Severity | High — CVSS 3.1 Base Score: 8.2 |
 | CVSS Vector | AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N |
-| Affected Versions | <= 2.1.24 (verified on 2.1.24, latest release as of 2026-10-05) |
+| Affected Versions | <= 2.1.24 (verified on 2.1.24 @ af158e6; the project does not tag releases, master is the distribution channel) |
 | Authentication | None — any connected socket.io client, room membership not required |
 
 ### Summary
@@ -140,7 +140,7 @@ Re-verified against **real MiroTalk 2.1.24** (source @ `af158e6`, running server
 
 The `checkPassword` oracle answers OK/KO to any connected socket with no rate limit, no lockout, and no room-membership requirement, and the recovered password was used to unlock and join the room. Server-side logs confirm the unlock succeeded.
 
-![Real-environment verification](RealEnv_mirotalk.png)
+![Real-environment verification](MiroTalk_room_password_brute_force.png)
 
 ## Impact
 

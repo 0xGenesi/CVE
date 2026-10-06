@@ -107,7 +107,7 @@ bindings:
 
 Raw dot-dot request paths pass through the `http-filesystem` mapping's `${params.path}` and escape the configured root: an arbitrary file anywhere reachable by the zilla process (including its own configuration) is returned with HTTP 200. URL-encoded variants are normalized (404) — the bypass requires the raw request path, which browsers and most clients normalize but raw sockets do not.
 
-![Real-environment verification](RealEnv_zilla.png)
+![Real-environment verification](zilla_http_filesystem_path_traversal.png)
 
 ### Impact
 

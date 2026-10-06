@@ -6,7 +6,7 @@
 | Vulnerability Type | Missing Authentication for Critical Function (CWE-306) |
 | Severity | Critical — CVSS 3.1 Base Score: 9.8 |
 | CVSS Vector | AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H |
-| Affected Versions | <= 0.0.1 (verified on main @ 2c6413c, latest as of 2026-10-05) |
+| Affected Versions | <= 1.0.8 (verified on main @ 2c6413c; the 1.0.8 tag ships the same opt-in-only auth) |
 | Authentication | None (default deployment; MOBILEMCP_AUTH is opt-in and unset by default) |
 
 ### Summary
@@ -108,7 +108,7 @@ data: {"result":{"content":[{"type":"text","text":"{\"devices\":[],...}"}]},"jso
 
 A real `tools/call` executed and returned a real tool result with **no Authorization header** — the full MCP device-control tool surface (screenshots, taps, input, shell on attached devices) is exposed to any unauthenticated network peer by default. Note: current main adds an **opt-in** `MOBILEMCP_AUTH` bearer token; the default deployment posture remains unauthenticated, so the finding and remediation guidance stand.
 
-![Real-environment verification](RealEnv_mobile-mcp.png)
+![Real-environment verification](mobile-mcp_unauthenticated_device_control.png)
 
 ## Impact
 

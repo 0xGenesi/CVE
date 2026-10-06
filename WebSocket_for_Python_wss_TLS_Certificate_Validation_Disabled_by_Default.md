@@ -6,7 +6,7 @@
 | Vulnerability Type | Improper Certificate Validation (CWE-295) |
 | Severity | High — CVSS 3.1 Base Score: 8.1 |
 | CVSS Vector | AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N |
-| Affected Versions | <= 0.5.1 (latest PyPI release) and 0.6.0 / master @ 21dc60e (verified on both) |
+| Affected Versions | <= 0.6.0 (verified on 0.6.0 / master @ 21dc60e and on the 0.5.1 release wheel, latest PyPI release as of 2026-10-05) |
 | Authentication | None — requires a man-in-the-middle network position |
 
 ### Summary
@@ -15,7 +15,7 @@ WebSocket-for-Python (Lawouach/WebSocket-for-Python, ws4py through 0.6.0 / maste
 
 The attack was reproduced end to end in an isolated environment: a TLS listener with a self-signed certificate (`CN=evil.attacker.test`, mismatching the client's target `127.0.0.1:18444`) accepted the ws4py default-options client, captured the complete plaintext WebSocket upgrade request including the `Authorization: Bearer SECRET_TOKEN_12345` header, computed the correct `Sec-WebSocket-Accept`, and completed the 101 handshake; `ws.connect()` returned without any exception. All subsequent bidirectional traffic passed through the attacker. The threaded and gevent client variants inherit the same behavior.
 
-**Affected versions:** ws4py 0.5.1 (latest PyPI release) and 0.6.0 / `master` @ `21dc60e` — both ship the identical `CERT_NONE` default in `ws4py/client/__init__.py`.
+**Affected versions:** ws4py <= 0.6.0 (PyPI latest). The identical `CERT_NONE` default in `ws4py/client/__init__.py` is present in 0.6.0 / `master` @ `21dc60e` (verified dynamically) and in the 0.5.1 release wheel (verified by code inspection).
 
 ### Details
 
@@ -107,7 +107,7 @@ Re-verified with the **unmodified repository code** (`ws4py` @ master) as the cl
 
 With no `ssl_options` set, the ws4py client completed the full TLS + WebSocket upgrade handshake against the impostor certificate and exchanged application messages in both directions — machine-in-the-middle position confirmed. The default-policy contrast on the same endpoint rejects the identical certificate.
 
-![Real-environment verification](RealEnv_ws4py.png)
+![Real-environment verification](ws4py_wss_tls_verification_disabled.png)
 
 ## Impact
 

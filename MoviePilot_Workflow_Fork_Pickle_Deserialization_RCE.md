@@ -93,7 +93,7 @@ RCE-as-0xgenesi
 
 `os.system()` executed inside the real `restore_context()` during workflow startup; the "crash" shown above is itself proof — `self.context` was replaced by `os.system`'s integer return value because `pickle.loads()` instantiated the attacker object. Command execution as the MoviePilot service user is confirmed end-to-end.
 
-![Real-environment verification](RealEnv_MoviePilot.png)
+![Real-environment verification](MoviePilot_pickle_deserialization_rce.png)
 
 ## Impact
 

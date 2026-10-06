@@ -6,16 +6,16 @@
 | Vulnerability Type | Origin Validation Error (CWE-346), Insufficient Verification of Data Authenticity (CWE-345) |
 | Severity | High — CVSS 3.1 Base Score: 8.1 |
 | CVSS Vector | AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N |
-| Affected Versions | develop @ 23b62a8 (no tagged releases; embed path live on chitchatter.im as of 2026-10-05) |
+| Affected Versions | develop @ 23b62a8 (verified at this commit; the project has no tagged releases) |
 | Authentication | None — attacker-controlled embed host; no consent or key pinning on the config path |
 
 ### Summary
 
-Chitchatter (jeremyckahn/chitchatter, `develop` branch) was confirmed vulnerable to a config-injection attack against its embedded SDK bridge that silently replaces a user's cryptographic identity keys. The `isConfigMessageEvent` origin check in src/models/sdk.ts derives the expected parent origin from the `parentDomain` URL query parameter — a value the embedding page (or an attacker-controlled embedder) fully controls. A malicious page can therefore iframe the Chitchatter app with `parentDomain` pointing at its own origin, satisfy the origin check trivially, and deliver a `config` postMessage whose payload contains attacker-generated RSA `CryptoKey` objects. Chitchatter merges the payload into `UserSettings` and persists the replaced identity keys in IndexedDB.
+Chitchatter (jeremyckahn/chitchatter, `develop` branch) was confirmed vulnerable to a config-injection attack against its embedded SDK bridge that silently replaces a user's cryptographic identity keys. The `isConfigMessageEvent` origin check in src/models/sdk.ts derives the expected parent origin from the `parentDomain` URL query parameter — a value the embedding page (or an attacker-controlled embedder) fully controls. A malicious page can therefore iframe the Chitchatter app with `parentDomain` pointing at its own origin, satisfy the origin check trivially, and deliver a `config` postMessage whose payload contains attacker-generated `CryptoKey` key material. Chitchatter merges the payload into `UserSettings` and persists the replaced identity keys in IndexedDB.
 
-The chain was verified by static source review of the develop branch; the postMessage protocol (`configRequested`/`config`) matches the shipped SDK implementation (sdk/sdk.ts:67-89), and `CryptoKey` structured-clone transfer is standard WebCrypto behavior. The affected deployments include the hosted instance chitchatter.im and any self-hosted build exposing the SDK bridge.
+The chain was verified by static source review of the develop branch; the postMessage protocol (`configRequested`/`config`) matches the shipped SDK implementation (sdk/sdk.ts:67-89), and `CryptoKey` structured-clone transfer is standard WebCrypto behavior. Affected deployments are builds and embed integrations that expose the SDK bridge (self-hosted or third-party embedders). The current chitchatter.im production bundle does not appear to expose it: none of the JavaScript chunks served at the time of writing contains the `parentDomain` handling.
 
-**Affected versions:** Chitchatter `develop` @ `23b62a8` (the SDK embed path is live on chitchatter.im; `src/models/sdk.ts` and `src/Bootstrap.tsx` as tested).
+**Affected versions:** Chitchatter `develop` @ `23b62a8` (`src/models/sdk.ts` and `src/Bootstrap.tsx` as tested; the SDK bridge is source-level, not confirmed in the current chitchatter.im production bundle).
 
 ### Details
 
@@ -97,7 +97,7 @@ Re-verified in a **real browser session** (Chromium) against a real Chitchatter 
 
 Observed result: the embedded client accepted the attacker-supplied key material and applied the injected identity — the session's "Your username" field showed the attacker-chosen value, and the iframe established an encrypted peer-to-peer session with a second (victim) peer in the same room using the attacker-controlled identity keys. No signature, consent, or key-pinning check exists anywhere on the path (`Bootstrap.tsx:158-172` pre-render merge, `Bootstrap.tsx:197-215` live-merge). A malicious embed host therefore controls — and can silently replace — the E2EE identity keying of every session it serves.
 
-![Real-environment verification](RealEnv_chitchatter.png)
+![Real-environment verification](chitchatter_sdk_postMessage_key_injection.png)
 
 ## Impact
 

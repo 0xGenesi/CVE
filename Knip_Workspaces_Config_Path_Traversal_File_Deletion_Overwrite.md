@@ -123,7 +123,7 @@ const unusedVictimExport = "CANARY-export"; # export keyword stripped
 
 The released knip analyzed — and, with `--fix`, **deleted and rewrote** — files in a directory outside the repository, driven purely by the attacker-chosen workspace pattern. `mapWorkspaces` (`src/util/map-workspaces.ts`) globs the pattern and joins it to the cwd with no containment check, and the fixer (`IssueFixer.ts:52` `rm(issue.filePath)`) acts on the resulting out-of-bound paths.
 
-![Real-environment verification](RealEnv_knip.png)
+![Real-environment verification](knip_workspace_traversal_file_deletion.png)
 
 ## Impact
 

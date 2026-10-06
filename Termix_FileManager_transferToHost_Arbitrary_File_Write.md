@@ -6,7 +6,7 @@
 | Vulnerability Type | External Control of File Name or Path (CWE-73), Improper Authorization (CWE-285) |
 | Severity | High — CVSS 3.1 Base Score: 8.8 |
 | CVSS Vector | AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H |
-| Affected Versions | <= 2.9.1 (verified on release-2.9.1-tag, latest release as of 2026-10-05) |
+| Affected Versions | <= 2.9.2 (verified on release-2.9.1-tag; the 2.9.1 to 2.9.2 diff leaves the file-manager transfer code unchanged) |
 | Authentication | Required — any authenticated Termix user (file-manager plugin) |
 
 ### Summary
