@@ -1,13 +1,13 @@
 # Arbitrary File Copy and Path Traversal Write via `files/save-uploaded-file` in DbGate
 
 | Field | Value |
-|-------|-------|
-| **Project** | [dbgate/dbgate](https://github.com/dbgate/dbgate) |
-| **Vulnerability Type** | Path Traversal (CWE-22) |
-| **Severity** | Critical — CVSS 3.1 Base Score: **9.1** |
-| **CVSS Vector** | `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N` |
-| **Affected Versions** | <= 7.2.5 (verified on 7.2.5, latest release as of 2026-08-14) |
-| **Authentication** | None (default anonymous deployment) |
+|---|---|
+| Project | [dbgate/dbgate](https://github.com/dbgate/dbgate) |
+| Vulnerability Type | Path Traversal (CWE-22) |
+| Severity | Critical — CVSS 3.1 Base Score: **9.1** |
+| CVSS Vector | `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N` |
+| Affected Versions | <= 7.2.5 (verified on 7.2.5, latest release as of 2026-08-14) |
+| Authentication | None (default anonymous deployment) |
 
 ---
 
@@ -92,7 +92,7 @@ curl -s -X POST http://TARGET:3000/files/save-uploaded-file \
 
 File confirmed at `/tmp/evil_trav.sql` on the filesystem, bypassing the `filesdir()` restriction.
 
-![PoC Screenshot](poc_03_save_uploaded_file.png)
+![PoC Screenshot](dbgate_save_uploaded_file_path_traversal_poc.png)
 
 ---
 
@@ -105,3 +105,10 @@ An unauthenticated attacker can:
 - **Chain for RCE** — combine with other vulnerabilities or deploy executable content to system directories
 
 The only constraint is the file extension check (`.sql` or `.sqlite`), which is trivially satisfied. In the default Docker deployment with anonymous auth, no credentials are required.
+
+### Remediation
+
+1. Do not serve the DbGate API anonymously: require authentication (any `AMOid` other than `none`) or bind the server to a trusted interface behind an authenticating reverse proxy.
+2. Canonicalize and containment-check every user-controlled path (realpath after symlink resolution) against the connection's declared data root before any file read, write, delete, archive extraction, or command execution.
+3. Reject absolute paths and `..` segments in `file://` targets, archive members, and exported model paths; forbid symlink traversal in archive extraction.
+4. Sanitize uploaded file names (basename only) and verify the final save path remains within the per-connection upload root.

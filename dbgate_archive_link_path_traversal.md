@@ -1,13 +1,13 @@
 # Arbitrary File Read/Write/Delete via Archive Link Path Traversal in DbGate
 
 | Field | Value |
-|-------|-------|
-| **Project** | [dbgate/dbgate](https://github.com/dbgate/dbgate) |
-| **Vulnerability Type** | Path Traversal (CWE-22), Link Following (CWE-59) |
-| **Severity** | Critical — CVSS 3.1 Base Score: **9.8** |
-| **CVSS Vector** | `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` |
-| **Affected Versions** | <= 7.2.5 (verified on 7.2.5, latest release as of 2026-08-14) |
-| **Authentication** | None (default anonymous deployment) |
+|---|---|
+| Project | [dbgate/dbgate](https://github.com/dbgate/dbgate) |
+| Vulnerability Type | Path Traversal (CWE-22), Link Following (CWE-59) |
+| Severity | Critical — CVSS 3.1 Base Score: **9.8** |
+| CVSS Vector | `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` |
+| Affected Versions | <= 7.2.5 (verified on 7.2.5, latest release as of 2026-08-14) |
+| Authentication | None (default anonymous deployment) |
 
 ---
 
@@ -113,7 +113,7 @@ true
 
 File confirmed on the filesystem via the `runners/files` directory listing (see companion advisory), showing `dbgate_poc.txt` with 5 bytes under `/etc`.
 
-![PoC Screenshot](poc_01_archive_link.png)
+![PoC Screenshot](dbgate_archive_link_path_traversal_poc.png)
 
 ---
 
@@ -126,3 +126,10 @@ An unauthenticated attacker can read, write, or delete any file on the DbGate se
 - **Data Destruction** — deleting critical system files causing permanent denial of service
 
 Since DbGate ships with anonymous authentication enabled by default, this is exploitable by any network peer without credentials.
+
+### Remediation
+
+1. Do not serve the DbGate API anonymously: require authentication (any `AMOid` other than `none`) or bind the server to a trusted interface behind an authenticating reverse proxy.
+2. Canonicalize and containment-check every user-controlled path (realpath after symlink resolution) against the connection's declared data root before any file read, write, delete, archive extraction, or command execution.
+3. Reject absolute paths and `..` segments in `file://` targets, archive members, and exported model paths; forbid symlink traversal in archive extraction.
+4. Refuse archive entries whose extraction target escapes the destination directory (zip-slip guard) and do not follow symlinks contained in uploaded archives.

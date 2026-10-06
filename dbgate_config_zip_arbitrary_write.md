@@ -1,13 +1,13 @@
 # Arbitrary File Write via `filePath` in `config/create-connections-and-settings-zip` in DbGate
 
 | Field | Value |
-|-------|-------|
-| **Project** | [dbgate/dbgate](https://github.com/dbgate/dbgate) |
-| **Vulnerability Type** | Path Traversal (CWE-22) |
-| **Severity** | Critical — CVSS 3.1 Base Score: **9.1** |
-| **CVSS Vector** | `AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:H` |
-| **Affected Versions** | <= 7.2.5 (verified on 7.2.5, latest release as of 2026-08-14) |
-| **Authentication** | None (default anonymous deployment) |
+|---|---|
+| Project | [dbgate/dbgate](https://github.com/dbgate/dbgate) |
+| Vulnerability Type | Path Traversal (CWE-22) |
+| Severity | Critical — CVSS 3.1 Base Score: **9.1** |
+| CVSS Vector | `AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:H` |
+| Affected Versions | <= 7.2.5 (verified on 7.2.5, latest release as of 2026-08-14) |
+| Authentication | None (default anonymous deployment) |
 
 ---
 
@@ -72,7 +72,7 @@ $ ls -la /tmp/poc_config.zip
 
 The file was created at the attacker-specified absolute path (`/tmp/poc_config.zip`) outside DbGate's managed directories. Overwriting critical paths like `/etc/passwd` or application binaries would cause system corruption or denial of service.
 
-![PoC Screenshot](poc_04_config_zip.png)
+![PoC Screenshot](dbgate_config_zip_arbitrary_write_poc.png)
 
 ---
 
@@ -85,3 +85,10 @@ An unauthenticated attacker can write ZIP-formatted content to any writable path
 - **Chainable** — combined with other file read vulnerabilities, this can lead to full system compromise
 
 In the default Docker deployment with anonymous auth, no credentials are required. The written content is ZIP-formatted binary data, making targeted file content manipulation difficult, but arbitrary file overwrite of critical paths is sufficient for denial of service.
+
+### Remediation
+
+1. Do not serve the DbGate API anonymously: require authentication (any `AMOid` other than `none`) or bind the server to a trusted interface behind an authenticating reverse proxy.
+2. Canonicalize and containment-check every user-controlled path (realpath after symlink resolution) against the connection's declared data root before any file read, write, delete, archive extraction, or command execution.
+3. Reject absolute paths and `..` segments in `file://` targets, archive members, and exported model paths; forbid symlink traversal in archive extraction.
+4. Validate `config/create-connections-and-settings-zip` output paths against the configuration directory allowlist and never write outside it.

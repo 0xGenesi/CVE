@@ -1,13 +1,13 @@
 # Arbitrary File Read/Write via `file://` Protocol in DbGate jsldata Controller
 
 | Field | Value |
-|-------|-------|
-| **Project** | [dbgate/dbgate](https://github.com/dbgate/dbgate) |
-| **Vulnerability Type** | Path Traversal (CWE-22), External Control of File Name or Path (CWE-73) |
-| **Severity** | Critical — CVSS 3.1 Base Score: **9.8** |
-| **CVSS Vector** | `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` |
-| **Affected Versions** | <= 7.2.5 (verified on 7.2.5, latest release as of 2026-08-14) |
-| **Authentication** | None (default anonymous deployment) |
+|---|---|
+| Project | [dbgate/dbgate](https://github.com/dbgate/dbgate) |
+| Vulnerability Type | Path Traversal (CWE-22), External Control of File Name or Path (CWE-73) |
+| Severity | Critical — CVSS 3.1 Base Score: **9.8** |
+| CVSS Vector | `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` |
+| Affected Versions | <= 7.2.5 (verified on 7.2.5, latest release as of 2026-08-14) |
+| Authentication | None (default anonymous deployment) |
 
 ---
 
@@ -104,7 +104,7 @@ curl -s -X POST http://TARGET:3000/jsldata/get-rows \
 
 Both read and write via `file://` succeed without any path restriction.
 
-![PoC Screenshot](poc_02_jsldata_file.png)
+![PoC Screenshot](dbgate_jsldata_file_read_write_poc.png)
 
 ---
 
@@ -117,3 +117,10 @@ An unauthenticated attacker can read and write any file on the DbGate server fil
 - **Data Destruction** — overwriting critical system files
 
 The root cause is an incomplete fix (Issue #1502) that only blocked `file://` in the `streamRows()` path but left all other jsldata endpoints vulnerable. In the default Docker deployment with anonymous auth, this requires no credentials.
+
+### Remediation
+
+1. Do not serve the DbGate API anonymously: require authentication (any `AMOid` other than `none`) or bind the server to a trusted interface behind an authenticating reverse proxy.
+2. Canonicalize and containment-check every user-controlled path (realpath after symlink resolution) against the connection's declared data root before any file read, write, delete, archive extraction, or command execution.
+3. Reject absolute paths and `..` segments in `file://` targets, archive members, and exported model paths; forbid symlink traversal in archive extraction.
+4. Remove or gate the `file://` protocol handler behind an explicit administrator opt-in, and scope it to a single jailed directory.

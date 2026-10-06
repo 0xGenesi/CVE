@@ -1,10 +1,13 @@
 # Path Traversal in MediaUploadTrait::deleteFile() leading to arbitrary file deletion
 
-**Affected versions:** Grav CMS 1.7.0 through 2.0.16 (verified in 1.7.45, 2.0.15, 2.0.16 develop)
-**Fixed in:** 2.0.17 (added `checkFilepath()` full-path validation)
-**CVE:** Not assigned
-**CVSS 3.1:** 7.5 (High) — `CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:H`
-**CWE:** CWE-22 (Path Traversal), CWE-73 (External Control of File Name or Path)
+| Field | Value |
+|---|---|
+| Project | getgrav/grav |
+| Vulnerability Type | Path Traversal (CWE-22), External Control of File Name or Path (CWE-73) |
+| Severity | High — CVSS 3.1 Base Score: 7.5 |
+| CVSS Vector | AV:N/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:H |
+| Affected Versions | 1.7.0 through 2.0.16 (verified on 1.7.45, 2.0.15, 2.0.16-develop; fixed in 2.0.17) |
+| Authentication | Required — authenticated admin-panel user with media deletion rights |
 
 ## Summary
 
@@ -239,7 +242,7 @@ The target file `config/security.yaml` was successfully deleted while the legiti
 
 ### PoC screenshot
 
-![PoC execution output confirming arbitrary file deletion via path traversal](Grav_poc.png)
+![PoC execution output confirming arbitrary file deletion via path traversal](Grav_CMS_path_traversal_arbitrary_file_deletion_poc.png)
 
 ## Impact
 

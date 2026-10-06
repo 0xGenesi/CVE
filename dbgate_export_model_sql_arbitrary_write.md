@@ -1,13 +1,13 @@
 # Arbitrary File Write via `outputFile` in `database-connections/export-model-sql` in DbGate
 
 | Field | Value |
-|-------|-------|
-| **Project** | [dbgate/dbgate](https://github.com/dbgate/dbgate) |
-| **Vulnerability Type** | Path Traversal (CWE-22) |
-| **Severity** | Critical — CVSS 3.1 Base Score: **9.1** |
-| **CVSS Vector** | `AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:H` |
-| **Affected Versions** | <= 7.2.5 (verified on 7.2.5, latest release as of 2026-08-14) |
-| **Authentication** | None (default anonymous deployment) |
+|---|---|
+| Project | [dbgate/dbgate](https://github.com/dbgate/dbgate) |
+| Vulnerability Type | Path Traversal (CWE-22) |
+| Severity | Critical — CVSS 3.1 Base Score: **9.1** |
+| CVSS Vector | `AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:H` |
+| Affected Versions | <= 7.2.5 (verified on 7.2.5, latest release as of 2026-08-14) |
+| Authentication | None (default anonymous deployment) |
 
 ---
 
@@ -110,7 +110,7 @@ $ cat /tmp/marker_file.txt
 
 The original `ORIGINAL_CONTENT` was destroyed, confirming arbitrary file overwrite.
 
-![PoC Screenshot](poc_05_export_model_sql.png)
+![PoC Screenshot](dbgate_export_model_sql_arbitrary_write_poc.png)
 
 ---
 
@@ -124,3 +124,10 @@ An unauthenticated attacker can write SQL schema content to any writable path on
 - **Chainable** — combined with other DbGate file read vulnerabilities for full system compromise
 
 The only prerequisite is a valid database connection ID (`conid`), which can be trivially created via the `connections/new-sqlite-database` endpoint. In the default Docker deployment with anonymous auth, no credentials are required.
+
+### Remediation
+
+1. Do not serve the DbGate API anonymously: require authentication (any `AMOid` other than `none`) or bind the server to a trusted interface behind an authenticating reverse proxy.
+2. Canonicalize and containment-check every user-controlled path (realpath after symlink resolution) against the connection's declared data root before any file read, write, delete, archive extraction, or command execution.
+3. Reject absolute paths and `..` segments in `file://` targets, archive members, and exported model paths; forbid symlink traversal in archive extraction.
+4. Constrain the export target directory via server-side allowlist and generate the SQL filename server-side instead of accepting client paths.

@@ -1,5 +1,14 @@
 # AiSOC (main) Federated Search free_text ES|QL Injection on Customer Elasticsearch
 
+| Field | Value |
+|---|---|
+| Project | beenuar/AiSOC |
+| Vulnerability Type | Improper Neutralization of Special Elements in Data Query Logic (CWE-943) |
+| Severity | High — CVSS 3.1 Base Score: 8.3 |
+| CVSS Vector | AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:L |
+| Affected Versions | main branch, no tagged releases (verified on `main` as of 2026-10-05) |
+| Authentication | Required — any authenticated tenant user of the federated search API |
+
 ### Summary
 
 AiSOC (`main` branch, https://github.com/beenuar/AiSOC), a multi-tenant agentic SIEM, was confirmed vulnerable to ES|QL injection in its federated search feature. `POST /api/v1/federated/search` passes the caller's `free_text` field verbatim to the connectors microservice, where the Elastic translator `to_esql()` interpolates it into a `LIKE` predicate via a bare f-string — the only one of the four dialect translators (SPL/KQL/AQL/ES|QL) that does not escape `free_text` through its quote function. A single double quote closes the `LIKE` string literal, letting an authenticated tenant user inject arbitrary ES|QL pipeline clauses (`WHERE`, `EVAL`, `ENRICH`, `LOOKUP JOIN`, `KEEP`, `DROP`, `LIMIT`) that execute on the customer's Elasticsearch cluster with tenant connector credentials.
@@ -74,3 +83,11 @@ Injected pipeline clauses verified to execute against a live Elasticsearch `_que
 ### Impact
 
 Any tenant user holding `connectors:read` can execute arbitrary ES|QL pipeline queries on the customer's Elasticsearch cluster: (1) `EVAL` rewrites result fields — e.g. downgrading `kibana.alert.severity` from critical to info to deceive downstream SOC triage; (2) `ENRICH`/`LOOKUP JOIN` exfiltrates internal enrich-policy data; (3) a second `WHERE` bypasses time-window and message filters to read logs of any time range and tenant in the index; (4) `DROP`/`KEEP` probes the schema; (5) `LIMIT 9999` enables bulk extraction with platform performance impact. Queries run inside the customer SIEM's Elasticsearch with tenant connector credentials, so results are returned directly to the attacker through the product UI/API.
+
+### Remediation
+
+1. Escape `free_text` through the same quote function used by the other three dialect translators before interpolating it into the ES|QL `LIKE` predicate; reject values containing unescaped quotes.
+2. Prefer parameterized queries / the Elasticsearch ES|QL parameter binding API over string interpolation.
+3. Run the connectors microservice under a dedicated Elasticsearch role limited to the indices and operations the search feature actually needs (no `DROP`, no cluster-level administration).
+
+![Verification output](AiSOC_federated_search_esql_injection_poc.png)

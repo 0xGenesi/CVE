@@ -1,5 +1,14 @@
 # NocoBase 2.1.40 SQLite Filter Array Operator SQL Injection
 
+| Field | Value |
+|---|---|
+| Project | nocobase/nocobase |
+| Vulnerability Type | SQL Injection (CWE-89) |
+| Severity | High — CVSS 3.1 Base Score: 8.1 |
+| CVSS Vector | AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N |
+| Affected Versions | <= 2.1.40 (verified on 2.1.40 with SQLite 3.44.2, latest release as of 2026-10-05) |
+| Authentication | Required — any authenticated API user with list access to a collection with an array field |
+
 ### Summary
 
 NocoBase 2.1.40 was confirmed vulnerable to SQL injection in the SQLite implementations of the `$anyOf` and `$noneOf` filter operators. An authenticated API user who can call a list action on a collection containing an array field can place SQL syntax inside an array filter value. NocoBase interpolates that value directly into a SQLite `EXISTS` subquery and passes the result to `Sequelize.literal()`.
@@ -87,7 +96,7 @@ Result:
 | admin@nocobase.com | 2f884850763fff97342c994f83ee45a9806c291e02a0ccc9e4da9476cad5ecde |
 +--------------------+------------------------------------------------------------------+
 ```
-![sqlmap dump result](NocoBase_SQLite_FilterParser_SQL_Injection_poc.png)
+![sqlmap dump result](NocoBase_sqlite_filter_parser_sql_injection_poc.png)
 
 
 #### Manual Boolean-based Blind Injection
@@ -134,3 +143,10 @@ The benign `$noneOf:["alpha"]` request returned one row, while the injected requ
 An authenticated attacker who can query an affected array field can alter the SQL condition executed by NocoBase. The confirmed proof changes result visibility, allowing unauthorized access to records that the intended filter should exclude. More critically, boolean-based blind injection enables complete database extraction — verified by sqlmap extracting the administrator email and password hash from the `users` table. Extracted password hashes can be cracked offline for full account takeover.
 
 The tested configuration is NocoBase 2.1.40 with SQLite 3.44.2. Implementations that contain the same unescaped SQLite array-operator construction are affected; deployments using the protected PostgreSQL or MySQL branches were not claimed as vulnerable by this test.
+
+### Remediation
+
+1. Build the `EXISTS` subquery for `$anyOf`/`$noneOf` with bound parameters instead of interpolating the user value into the SQL string passed to `Sequelize.literal()`.
+2. Validate array-field filter values against the column type before query construction, and reject values containing SQL metacharacters.
+3. Apply the same fix to every dialect-specific array operator implementation, not only SQLite.
+

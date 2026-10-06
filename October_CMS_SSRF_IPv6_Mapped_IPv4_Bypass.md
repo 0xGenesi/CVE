@@ -1,4 +1,13 @@
 # SSRF bypass in October CMS ResizeImages via IPv6-mapped IPv4 address encoding
+| Field | Value |
+|---|---|
+| Project | octobercms/october |
+| Vulnerability Type | Server-Side Request Forgery (CWE-918), Improper Neutralization of Special Elements (CWE-706) |
+| Severity | High — CVSS 3.1 Base Score: 8.1 |
+| CVSS Vector | AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N |
+| Affected Versions | <= 4.3.4 (4.x branch up to commit c1876c7, verified on v4.3.4 source) |
+| Authentication | None — the /resize/{file} route is publicly reachable |
+
 ## Summary
 
 October CMS (4.x branch, up to version 4.3.4) implements SSRF protections in the `System\Classes\ResizeImages` class to prevent the image fetcher from accessing internal network resources. However, the protection relies on PHP's `filter_var()` with `FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE`, which fails to detect private or reserved IPv4 addresses when they are encoded as IPv6-mapped IPv4 addresses (`::ffff:127.0.0.1`).

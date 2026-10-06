@@ -1,5 +1,14 @@
 # ConvertX v0.19.0 Hardcoded Default JWT Secret — Full Authentication Bypass
 
+| Field | Value |
+|---|---|
+| Project | C4illin/ConvertX |
+| Vulnerability Type | Use of Hard-coded Cryptographic Key (CWE-321), Improper Authentication (CWE-287) |
+| Severity | Critical — CVSS 3.1 Base Score: 9.8 |
+| CVSS Vector | AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H |
+| Affected Versions | <= v0.19.0 (verified on v0.19.0, latest release as of 2026-10-05) |
+| Authentication | None — the signing secret is the publicly documented docker-compose default |
+
 ### Summary
 
 ConvertX v0.19.0 (https://github.com/C4illin/ConvertX) relies on a single HS256-signed JWT cookie (`auth`) for its entire authentication model. The signing secret comes from `process.env.JWT_SECRET ?? randomUUID()` (`src/services/user.ts:14`), but the project's own deployment artifacts publish a concrete, publicly-readable default: the official docker-compose snippet in `README.md:72` and the repository root `compose.yaml:15` both instruct users to set
@@ -73,3 +82,11 @@ Observed: the request is accepted as user `id=1` (owner) — history enumeration
 ### Impact
 
 On any instance deployed per the official documentation without customizing `JWT_SECRET`, an unauthenticated internet attacker fully impersonates the owner (user `id=1`) and every other user: downloads all uploaded and converted files (potentially sensitive documents and images), deletes arbitrary jobs and files, and continues using the service as the victim. The authentication model is broken end-to-end; there is no detection difference between forged and legitimate tokens.
+
+### Remediation
+
+1. Remove the published default from `README.md` and `compose.yaml`; generate a random secret on first start when `JWT_SECRET` is unset and refuse to boot if it still equals the published string.
+2. Invalidate all existing sessions after the secret changes and warn operators whose secret matches the known default.
+3. Consider binding sessions to a server-side session store instead of stateless HS256 cookies so credential lifetimes can be revoked centrally.
+
+![Verification output](ConvertX_hardcoded_jwt_secret_auth_bypass_poc.png)

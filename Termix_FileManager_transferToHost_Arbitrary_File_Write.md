@@ -137,4 +137,10 @@ Because the destination session's `ip` is `127.0.0.1`, `isLocalSshEndpoint()` (`
 
 ![Real-environment verification](Termix_transferToHost_arbitrary_file_write.png)
 
+### Remediation
+
+1. Restrict `transferToHost` destinations to hosts pre-registered by an administrator; treat a caller-supplied `ip`/`socks5Host` in the destination session as a policy violation rather than a routing hint.
+2. Deny destination sessions classified by `isLocalSshEndpoint()` (loopback or any of the server's own addresses) unless the operator explicitly enables server-local transfers.
+3. Constrain `destPath` to the destination host's designated transfer root with real-path containment checks after symlink resolution, and reject absolute paths outside it.
+4. Require an elevated permission (rather than any authenticated account) for host-to-host transfers, and log destination host/path pairs for audit.
 

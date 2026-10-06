@@ -79,6 +79,8 @@ POST /api/savemetadata
 
 Harness result: the injected Perl `system('id > /tmp/pwned')` executed during ExifTool processing and the output file contained `uid=0(root)` (official Docker deployments run the backend as root).
 
+![Sandbox harness verification](LibrePhotos_Person_Name_ExifTool_Argument_Injection_RCE_poc.png)
+
 **Real-environment reproduction** (the product itself built from source/official image and run for this test):
 
 

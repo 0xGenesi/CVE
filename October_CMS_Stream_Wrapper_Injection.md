@@ -1,9 +1,13 @@
 # Incomplete scheme validation in October CMS ResizeImages enables PHP stream wrapper injection
 
-**Affected versions:** October CMS <= 4.3.4 (4.x branch, up to commit c1876c7)
-**CVE:** Not assigned
-**CVSS 3.1:** 8.1 (High) — `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H`
-**CWE:** CWE-22 (Improper Limitation of a Pathname to a Restricted Directory), CWE-918 (Server-Side Request Forgery), CWE-502 (Deserialization of Untrusted Data)
+| Field | Value |
+|---|---|
+| Project | octobercms/october |
+| Vulnerability Type | PHP File Inclusion via Stream Wrapper Injection (CWE-98), Path Traversal (CWE-22), SSRF (CWE-918) |
+| Severity | High — CVSS 3.1 Base Score: 8.1 |
+| CVSS Vector | AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H |
+| Affected Versions | <= 4.3.4 (4.x branch up to commit c1876c7, verified on v4.3.4 source) |
+| Authentication | None — the /resize/{file} route is publicly reachable |
 
 ## Summary
 
@@ -210,7 +214,7 @@ The commands `id`, `whoami`, and `uname -a` all executed successfully, confirmin
 
 ### Execution screenshot
 
-![PoC execution output showing full RCE chain from phar:// injection to command execution](poc.png)
+![PoC execution output showing full RCE chain from phar:// injection to command execution](October_CMS_stream_wrapper_injection_poc.png)
 
 ## Remediation
 

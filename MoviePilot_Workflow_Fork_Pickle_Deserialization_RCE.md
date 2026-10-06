@@ -74,6 +74,8 @@ Harness output (exit code 0):
 [VULN] pickle.loads() at app/chain/workflow.py:365 executed attacker-controlled object
 ```
 
+![Sandbox harness verification](MoviePilot_Workflow_Fork_Pickle_Deserialization_RCE_poc.png)
+
 **Real-environment reproduction** (the product itself built from source/official image and run for this test):
 
 
