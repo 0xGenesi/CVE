@@ -4,7 +4,9 @@
 
 Zilla (aklivity/zilla), an event-driven API gateway, was confirmed vulnerable to unauthenticated server-side path traversal in its `http-filesystem` binding. HTTP request path data captured by greedy route patterns (for example `/{path}`, compiled to `(?<path>.+)`) is substituted into `with.path`/`with.directory` templates without validation, then joined to the configured filesystem root using `URI.resolve()` and `Path.resolve()` in `FileSystemServerFactory`. The chain lacks path normalization and root containment checks, so an unauthenticated remote attacker can read, create, overwrite, and delete arbitrary files reachable by the Zilla process.
 
-The sink semantics were dynamically verified in a Java sandbox harness (2026-10-05) covering two independent bypass primitives: a relative traversal via `directory='../../'` escaping the tenant root, and an absolute `directory='/tmp/secret'` where `URI.resolve` adopts the absolute path and discards the configured root entirely. Both reached the out-of-root target `/tmp/secret/passwd`.
+The sink semantics were dynamically verified in a Java sandbox harness covering two independent bypass primitives: a relative traversal via `directory='../../'` escaping the tenant root, and an absolute `directory='/tmp/secret'` where `URI.resolve` adopts the absolute path and discards the configured root entirely. Both reached the out-of-root target `/tmp/secret/passwd`.
+
+**Affected versions:** Zilla 2.4.7 (official `ghcr.io/aklivity/zilla:latest` image; the `FileSystemServerFactory` resolution chain is unchanged on `main` @ `27279b1f`).
 
 ### Details
 
@@ -40,11 +42,11 @@ The typical vulnerable configuration maps a route parameter into the binding (of
 
 ```yaml
 routes:
-  - when:
-      - path: /files/{tenant}/{path}
-    with:
-      directory: ${params.tenant}
-      path: ${params.path}
+ - when:
+ - path: /files/{tenant}/{path}
+ with:
+ directory: ${params.tenant}
+ path: ${params.path}
 ```
 
 #### Arbitrary file read via traversal (unauthenticated)
@@ -56,7 +58,7 @@ Host: zilla.example.com
 
 Percent-encoded variants (`/files/..%2F../secret/passwd`) are equally accepted because the greedy `.+` capture preserves the raw segment and only charset validation applies.
 
-#### Java sandbox verification (Verified 2026-10-05)
+#### Java sandbox verification
 
 Two scenarios reproducing `FileSystemServerFactory`'s exact resolution logic:
 
@@ -71,12 +73,13 @@ Two scenarios reproducing `FileSystemServerFactory`'s exact resolution logic:
 - `PUT` overwrites an arbitrary file after obtaining the target's ETag via a traversal `GET` (the `If-Match` optimistic-lock check is satisfied by the same traversal read).
 - `DELETE` with a traversal target deletes an arbitrary file.
 
-### Real-Environment Verification (2026-10-06)
+**Real-environment reproduction** (the product itself built from source/official image and run for this test):
+
 
 Re-verified against the **official `ghcr.io/aklivity/zilla:latest` container** running the `http.filesystem` example binding (`location: /var/www/`), with a canary file planted outside the webroot at `/var/secret.txt`:
 
 ```
-$ curl -s --path-as-is http://127.0.0.1:7114/index.html          # baseline
+$ curl -s --path-as-is http://127.0.0.1:7114/index.html # baseline
 <html>legit index served by zilla</html>
 
 $ curl -s --path-as-is -i http://127.0.0.1:7114/../secret.txt
@@ -90,7 +93,7 @@ Content-Length: 771
 ---
 name: example
 bindings:
-  north_tcp_server: ...
+ north_tcp_server: ...
 ```
 
 Raw dot-dot request paths pass through the `http-filesystem` mapping's `${params.path}` and escape the configured root: an arbitrary file anywhere reachable by the zilla process (including its own configuration) is returned with HTTP 200. URL-encoded variants are normalized (404) — the bypass requires the raw request path, which browsers and most clients normalize but raw sockets do not.
@@ -102,3 +105,13 @@ Raw dot-dot request paths pass through the `http-filesystem` mapping's `${params
 An unauthenticated remote attacker can read arbitrary files readable by the Zilla process (credentials, private keys, `/proc/self/environ`), create files, overwrite existing files, and delete files — limited only by the process's filesystem permissions. In multi-tenant deployments where a route parameter maps to `with.directory`, the traversal breaks tenant isolation (cross-tenant read/write/delete). In containerized deployments, writing cron jobs, `authorized_keys`, or application configuration can escalate to remote code execution.
 
 Estimated severity: Critical (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H, base score 9.8). The finding was established by source analysis of the repository plus Java-sandbox validation of the sink semantics; the official `examples/http.filesystem` configuration form is vulnerable in its default shape. Affected release versions and fixed status: to be confirmed.
+
+### Remediation
+
+1. At the sink (`FileSystemServerFactory.onAppMessage`), normalize the final joined path and enforce containment: after `path.normalize()`, verify `path.startsWith(normalizedRoot)`; reject out-of-root paths with 403.
+2. In `HttpFileSystemWithResolver.resolve`, validate substitution results for both `directory` and `path`: reject values containing `..` segments and values beginning with `/`.
+3. If absolute directory mapping must be supported, use `Path.startsWith` semantics rather than the absolute-replacement semantics of `URI.resolve`.
+4. Apply validation to both fields - `directory` and `path` are both tainted by `${params}` substitution.
+5. Document the risk of `${params}` injection into `with.directory` in official examples and recommend path-segment whitelisting of parameters as the default.
+
+Patch status: to be confirmed (no vendor advisory available at the time of writing).

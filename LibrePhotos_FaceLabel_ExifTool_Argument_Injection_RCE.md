@@ -13,7 +13,7 @@ The attacker-controlled name enters through the face-label endpoints with only `
 ```python
 # apps/backend/api/views/faces.py:476-477
 def post(self, request, format=None):
-    person_name = (request.data.get("person_name") or "").strip()
+ person_name = (request.data.get("person_name") or "").strip()
 ```
 
 Metadata write-back is triggered either by `POST /api/savemetadata {"types":["face_tags"]}` (api/views/photos.py:933-968) or automatically when the user enables `save_face_tags_to_disk` (faces.py:583-594). The name then flows through `api/models/photo.py:214-227` → `api/metadata/photo_writer.py:49-55` → `api/metadata/face_regions.py:96-127`. There, `_escape_exiftool_value` (lines 73-82) escapes only backslash/braces/equals/comma — not newlines — and the raw name is appended to the `XMP:Subject` list at line 109, giving two independent injection channels.
@@ -23,11 +23,11 @@ The sink assembles the ExifTool arguments by interpolation (apps/backend/api/met
 ```python
 params = []
 for tag, value in tags.items():
-    if isinstance(value, list):
-        for item in value:
-            params.append(os.fsencode(f"-{tag}={item}"))
-    else:
-        params.append(os.fsencode(f"-{tag}={value}"))
+ if isinstance(value, list):
+ for item in value:
+ params.append(os.fsencode(f"-{tag}={item}"))
+ else:
+ params.append(os.fsencode(f"-{tag}={value}"))
 params.append(b"-overwrite_original")
 params.append(os.fsencode(file_path))
 et.execute(*params)
@@ -95,7 +95,7 @@ Content-Type: application/json
 
 While processing the attacker's photo, ExifTool evaluates the injected `-if` Perl expression; `system(...)` executes with backend-process privileges.
 
-#### Sandbox verification (Verified 2026-10-05)
+#### Sandbox verification
 
 End-to-end at the sink with the real toolchain — exiftool 13.x (Debian 12 libimage-exiftool-perl) + PyExifTool 0.4.9, reproducing `write_metadata`'s exact parameter construction (`-XMP:Subject=a`, `-if`, `system(...) // 1`, `-b`, `-overwrite_original`, `/tmp/poc/photo.jpg`):
 

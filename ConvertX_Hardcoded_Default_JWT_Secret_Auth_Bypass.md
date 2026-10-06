@@ -31,16 +31,16 @@ Core vulnerable code path:
 ```yaml
 # README.md:70-75 (official deployment guidance)
 environment:
-      - JWT_SECRET=aLongAndSecretStringUsedToSignTheJSONWebToken1234 # will use randomUUID() if unset
+ - JWT_SECRET=aLongAndSecretStringUsedToSignTheJSONWebToken1234 # will use randomUUID() if unset
 ```
 
 ```ts
 // src/services/user.ts:7-17
 .use(jwt({
-  name: "jwt",
-  schema: t.Object({ id: t.String() }),
-  secret: process.env.JWT_SECRET ?? randomUUID(),
-  exp: "7d",
+ name: "jwt",
+ schema: t.Object({ id: t.String() }),
+ secret: process.env.JWT_SECRET ?? randomUUID(),
+ exp: "7d",
 }))
 // src/services/user.ts:53 — signature-only check, no DB existence check
 const user = await jwt.verify(auth.value)

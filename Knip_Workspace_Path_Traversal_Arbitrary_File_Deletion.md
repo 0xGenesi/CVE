@@ -6,7 +6,7 @@ knip (`main` branch, https://github.com/webpro-nl/knip), the widely-used unused-
 
 An attacker who commits a malicious workspace config to any repository can therefore delete or corrupt arbitrary JS/TS files (and `package.json` files) belonging to other projects on the machine of a developer or CI runner who executes `knip --fix` inside the malicious checkout — a supply-chain-shaped arbitrary file destruction primitive.
 
-Dynamically verified 2026-10-05 with an end-to-end sandbox PoC (exit code 0): `join(cwd, dir) = /tmp/knip-poc/victim-external`, `dir escapes cwd? true`, external files scanned as `unused`, external `package.json` dependencies removed by default `--fix`.
+Dynamically verified with an end-to-end sandbox PoC (exit code 0): `join(cwd, dir) = /tmp/knip-poc/victim-external`, `dir escapes cwd? true`, external files scanned as `unused`, external `package.json` dependencies removed by default `--fix`.
 
 This is CWE-22: Improper Limitation of a Pathname to a Restricted Directory (write/delete primitive), in a supply-chain context (CWE-1357-ish trust of repository content).
 
@@ -22,29 +22,29 @@ This is CWE-22: Improper Limitation of a Pathname to a Restricted Directory (wri
 4. **Out-of-repo project scan.** The default project pattern `**/*.{js,ts,...}` is concatenated with the escaped workspace dir by `prependDirToPatterns` (`packages/knip/src/util/glob.ts:27-28`); `glob-core.ts:291-334` calls tinyglobby with `absolute: true` (`followSymbolicLinks: false` — symlinks are not the entry point here).
 5. **Issue generation.** Unreferenced out-of-repo files are reported as unused files (`packages/knip/src/graph/analyze.ts:370-374`); `IssueCollector` (`packages/knip/src/IssueCollector.ts:136-157`) keeps `issue.filePath` as an absolute out-of-repo path keyed as `../victim-project/xxx.ts`.
 6. **Sinks — `IssueFixer` (no boundary checks):**
-   - `removeUnusedFiles` (lines 52-59): `await rm(issue.filePath)` — permanent deletion of out-of-repo files (`knip --fix --allow-remove-files`).
-   - `removeUnusedExports` (lines 81-93): `join(this.options.cwd, filePath)` does not neutralize `../`; `writeFile(absFilePath, sourceFileText)` rewrites out-of-repo sources (strips unused exports, may append `export {};`) — triggered by default `knip --fix`.
-   - `removeUnusedDependencies` (lines 106-134) with `packages/knip/src/util/package-json.ts:195-205` `save()` rewrites out-of-repo `package.json` (external dependencies removed — observed).
+ - `removeUnusedFiles` (lines 52-59): `await rm(issue.filePath)` — permanent deletion of out-of-repo files (`knip --fix --allow-remove-files`).
+ - `removeUnusedExports` (lines 81-93): `join(this.options.cwd, filePath)` does not neutralize `../`; `writeFile(absFilePath, sourceFileText)` rewrites out-of-repo sources (strips unused exports, may append `export {};`) — triggered by default `knip --fix`.
+ - `removeUnusedDependencies` (lines 106-134) with `packages/knip/src/util/package-json.ts:195-205` `save()` rewrites out-of-repo `package.json` (external dependencies removed — observed).
 
 Core vulnerable code path:
 
 ```ts
 // packages/knip/src/IssueFixer.ts:52-59
 private async removeUnusedFiles(issues: Issues) {
-  if (!this.options.isFixFiles) return;
-  for (const issue of Object.values(issues.files).flatMap(Object.values)) {
-    await rm(issue.filePath);              // absolute path, may be outside cwd
-    issue.isFixed = true;
-  }
+ if (!this.options.isFixFiles) return;
+ for (const issue of Object.values(issues.files).flatMap(Object.values)) {
+ await rm(issue.filePath); // absolute path, may be outside cwd
+ issue.isFixed = true;
+ }
 }
 // packages/knip/src/IssueFixer.ts:81-93 (default --fix)
-const absFilePath = join(this.options.cwd, filePath);   // '../victim/x.ts' not contained
+const absFilePath = join(this.options.cwd, filePath); // '../victim/x.ts' not contained
 await writeFile(absFilePath, sourceFileText);
 ```
 
 ### PoC
 
-Verified 2026-10-05 end-to-end in an isolated sandbox (exit code 0):
+Verified end-to-end in an isolated sandbox (exit code 0):
 
 1. Victim project at `/tmp/knip-poc/victim-external` with `util.ts` and `package.json`.
 2. Malicious repository at `/tmp/knip-poc/malicious-repo` with `knip.json`:

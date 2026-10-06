@@ -4,7 +4,7 @@
 
 Chitchatter (https://github.com/jeremyckahn/chitchatter, `develop` branch) was confirmed vulnerable to an origin self-validation bypass in SDK/embed mode. `isConfigMessageEvent` (`src/models/sdk.ts:44-61`) anchors the "trusted parent" origin to the `parentDomain` URL query parameter of the embedded iframe itself — a value supplied by the embedding party (the attacker). The check compares `event.origin` against an attacker-written string, so any malicious page can pass it and inject an arbitrary user identity (userId, username, RSA `publicKey`/`privateKey` `CryptoKey` pair) into the victim's chitchatter session.
 
-The vulnerability was dynamically verified (verified 2026-10-04) with a Node.js harness replicating `isConfigMessageEvent` exactly: attacker-originated config messages passed validation, and the injected keys (`userId: attacker-controlled-peer-id-666`, attacker key pair) were accepted and persisted to the browser's IndexedDB under the legitimate chitchatter origin.
+The vulnerability was dynamically verified with a Node.js harness replicating `isConfigMessageEvent` exactly: attacker-originated config messages passed validation, and the injected keys (`userId: attacker-controlled-peer-id-666`, attacker key pair) were accepted and persisted to the browser's IndexedDB under the legitimate chitchatter origin.
 
 This is CWE-346: Origin Validation Error.
 
@@ -15,12 +15,12 @@ This is CWE-346: Origin Validation Error.
 ```ts
 // src/models/sdk.ts:44-61
 export const isConfigMessageEvent = (event: MessageEvent): event is ConfigMessageEvent => {
-  const queryParams = new URLSearchParams(window.location.search)
-  const parentDomain = queryParams.get(QueryParamKeys.PARENT_DOMAIN)
-  if (parentDomain === null) return false
-  const { origin: parentFrameOrigin } = new URL(decodeURIComponent(parentDomain))
-  if (event.origin !== parentFrameOrigin) return false   // self-referential check
-  ...
+ const queryParams = new URLSearchParams(window.location.search)
+ const parentDomain = queryParams.get(QueryParamKeys.PARENT_DOMAIN)
+ if (parentDomain === null) return false
+ const { origin: parentFrameOrigin } = new URL(decodeURIComponent(parentDomain))
+ if (event.origin !== parentFrameOrigin) return false // self-referential check
+ ...
 }
 ```
 
@@ -35,11 +35,11 @@ export const isConfigMessageEvent = (event: MessageEvent): event is ConfigMessag
 
 ### PoC
 
-Verified 2026-10-04 with a Node harness replicating `isConfigMessageEvent` 1:1:
+Verified with a Node harness replicating `isConfigMessageEvent` 1:1:
 
 ```
 Scenario 1 (control): message from trusted.example with parentDomain=trusted.example -> accepted (correct)
-Scenario 2 (attack):  message from evil.example   with parentDomain=evil.example   -> accepted (BYPASS)
+Scenario 2 (attack): message from evil.example with parentDomain=evil.example -> accepted (BYPASS)
 [VULN] origin 自证校验被绕过: 攻击者消息通过 isConfigMessageEvent 校验
 [VULN] 注入后 userId: attacker-controlled-peer-id-666
 [VULN] 注入后 privateKey: ATTACKER_GENERATED_PRIVATE_KEY_BASE64

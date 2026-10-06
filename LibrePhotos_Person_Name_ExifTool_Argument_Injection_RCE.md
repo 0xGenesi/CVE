@@ -6,9 +6,11 @@ LibrePhotos 1.2.1 (https://github.com/LibrePhotos/librephotos) was confirmed vul
 
 The face-annotation name (`Person.name`) is fully controlled by any authenticated user through `POST /api/addface` or `POST /api/labelfaces`; the server only applies `.strip()`, and mid-name newlines are stored verbatim (a plain `CharField(max_length=128)` with no character allowlist). When metadata write-back executes (`POST /api/savemetadata {"types":["face_tags"]}`, or automatically after adding a face when `save_face_tags_to_disk` is enabled), the injected newline lets an attacker inject arbitrary ExifTool options — including `-if <Perl expression>`, which is `eval`-uated per processed file, equivalent to remote code execution inside the backend process.
 
-The vulnerability was dynamically verified (verified 2026-10-05) with a sandbox harness replicating the exact PyExifTool 0.4.9 semantics and a real `exiftool` binary: an injected `system('id > ...')` Perl payload executed and emitted `uid=0(root)`.
+The vulnerability was dynamically verified with a sandbox harness replicating the exact PyExifTool 0.4.9 semantics and a real `exiftool` binary: an injected `system('id > ...')` Perl payload executed and emitted `uid=0(root)`.
 
 This is CWE-88: Improper Neutralization of Argument Delimiters in a Command.
+
+**Affected versions:** LibrePhotos 1.2.1 (tested: backend @ `054eb22`; the `write_metadata` sink is unchanged on `main`).
 
 ### Details
 
@@ -29,16 +31,16 @@ Core vulnerable code path:
 ```python
 # api/metadata/writer.py:27-36
 def write_metadata(...):
-    params = [os.fsencode(f"-{tag}={value}") ...]   # value may contain \n
-    ...
-    et.execute(*params)
-    # PyExifTool 0.4.9 exiftool.py:441
-    # cmd_text = b"\n".join(params + (b"-execute\n",))  -> \n splits arguments
+ params = [os.fsencode(f"-{tag}={value}") ...] # value may contain \n
+ ...
+ et.execute(*params)
+ # PyExifTool 0.4.9 exiftool.py:441
+ # cmd_text = b"\n".join(params + (b"-execute\n",)) -> \n splits arguments
 ```
 
 ### PoC
 
-Verified 2026-10-05 in a sandbox harness with the pinned PyExifTool 0.4.9 and a real `exiftool`:
+Verified in a sandbox harness with the pinned PyExifTool 0.4.9 and a real `exiftool`:
 
 1. As any authenticated user, create a face annotation whose person name embeds a newline:
 
@@ -68,14 +70,15 @@ POST /api/savemetadata
 
 Harness result: the injected Perl `system('id > /tmp/pwned')` executed during ExifTool processing and the output file contained `uid=0(root)` (official Docker deployments run the backend as root).
 
-### Real-Environment Verification (2026-10-06)
+**Real-environment reproduction** (the product itself built from source/official image and run for this test):
+
 
 Re-verified against the **real backend code** (unmodified clone of `LibrePhotos/librephotos` @ HEAD) with the production `api.metadata.writer.write_metadata()` and the pinned `PyExifTool==0.4.9` driving a real `exiftool 13.55` binary — exactly the deployment shape of the official images:
 
 ```
 $ python rce_test.py
 [attacker] person_name = "a\n-if\nsystem('id > .../pwned.txt 2>&1; \
-             echo RCE-as-$(whoami) >> .../pwned.txt') // 1\n-b"
+ echo RCE-as-$(whoami) >> .../pwned.txt') // 1\n-b"
 [victim] calling real write_metadata() -> exiftool via PyExifTool 0.4.9 stay_open stdin
 
 --- canary file /tmp/realverify/evidence/librephotos/pwned.txt ---
@@ -90,3 +93,11 @@ The newline-laden person name is transmitted as separate exiftool arguments over
 ## Impact
 
 Any authenticated low-privilege user (default configurations may expose public registration via `ALLOW_REGISTRATION`; multi-user family instances routinely share the server) achieves arbitrary command execution on the LibrePhotos backend with the backend process identity. In official Docker and standalone deployments this process runs as **root**, yielding full access to every user's photos, database credentials (`DB_PASS`), SMTP credentials, and the host container; an attacker can plant persistent backdoors and pivot to internal databases/proxies.CVSS v3.1 base 8.8 (AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H), with the root execution context pushing real-world impact toward the top of that range.
+
+### Remediation
+
+1. Neutralize argument delimiters at the sink: in apps/backend/api/metadata/writer.py::write_metadata, reject or strip \r and \n from every value (including list items) before building f"-{tag}={value}"; alternatively raise on any control character. Apply the same check to both the RegionInfo structured string and the XMP:Subject list paths.
+2. Constrain the source: validate Person.name against a character allow-list (reject control characters) in the model/serializer, and extend _escape_exiftool_value to cover newlines.
+3. Dependency hardening: PyExifTool 0.4.9 is unmaintained and its newline-join execute() is the injection primitive; wrap or replace it (note: 0.5.x still joins with newlines, so argument sanitization remains necessary).
+4. Defense in depth: run ExifTool (and ideally the whole backend) as a dedicated non-root user, so a future injection cannot yield root.
+5. Regression test: assert that a person name containing \n reaches exiftool either escaped or not at all.

