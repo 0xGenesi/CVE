@@ -1,4 +1,4 @@
-# Chitchatter SDK postMessage Config Injection Identity Takeover
+# Chitchatter SDK postMessage Identity Key Injection
 
 | Field | Value |
 |---|---|

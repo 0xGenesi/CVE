@@ -4,7 +4,7 @@
 |---|---|
 | Project | [dbgate/dbgate](https://github.com/dbgate/dbgate) |
 | Vulnerability Type | Path Traversal (CWE-22) |
-| Severity | Critical — CVSS 3.1 Base Score: **9.1** |
+| Severity | Critical — CVSS 3.1 Base Score: 9.1 |
 | CVSS Vector | `AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:H` |
 | Affected Versions | <= 7.2.5 (verified on 7.2.5, latest release as of 2026-08-14) |
 | Authentication | None (default anonymous deployment) |

@@ -3,7 +3,7 @@
 |---|---|
 | Project | octobercms/october |
 | Vulnerability Type | Server-Side Request Forgery (CWE-918), Improper Neutralization of Special Elements (CWE-706) |
-| Severity | High — CVSS 3.1 Base Score: 8.1 |
+| Severity | High — CVSS 3.1 Base Score: 8.2 |
 | CVSS Vector | AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N |
 | Affected Versions | <= 4.3.4 (4.x branch up to commit c1876c7, verified on v4.3.4 source) |
 | Authentication | None — the /resize/{file} route is publicly reachable |
