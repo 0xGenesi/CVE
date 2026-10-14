@@ -72,7 +72,7 @@ ws message: {"type":"next","id":"1","payload":{"data":{"webUIUpdateStatusChange"
 [VULN] unauthenticated subscription accepted as Admin
 ```
 
-**Real-environment reproduction** (the product itself, run for this test): a live build of master `e2ce828` in SIMPLE_LOGIN mode served the `connection_ack` and streamed subscription data to a completely unauthenticated WebSocket client; the identical flow under `UI_LOGIN` rejects the anonymous `connection_init` (that mode returns `Visitor` for a missing token), proving the bypass is specific to the SIMPLE_LOGIN path of `getUserFromToken`.
+**Real-environment reproduction** (the product itself, run for this test): a live build of master `e2ce828` in SIMPLE_LOGIN mode served the `connection_ack` and streamed subscription data to a completely unauthenticated WebSocket client; the identical flow under `UI_LOGIN` — where `getUserFromToken(null)` correctly returns `Visitor` for a missing token — acks the handshake but rejects the anonymous `subscribe` with an `Unauthorized` error, so no subscription data reaches an unauthenticated client; proving the bypass is specific to the SIMPLE_LOGIN path of `getUserFromToken`.
 
 ![Real-environment verification](suwayomi_ws_connection_init_admin_bypass.png)
 
