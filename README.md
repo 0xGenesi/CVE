@@ -6,6 +6,7 @@ verification output, impact analysis, and remediation guidance.
 
 | Severity | Advisory | Project |
 |---|---|---|
+| High (3.1) | [`/mux` Terminal WebSocket Accepts Any Origin and Any Terminal ID in Agent Orchestrator, Allowing Hijack of Existing Agent Session PTYs](agentorchestrator_mux_terminal_no_ownership.md) | Untrivial-ai/agent-orchestrator |
 | High (3.1) | [AiSOC (main) Federated Search free_text ES|QL Injection on Customer Elasticsearch](AiSOC_Federated_Search_ESQL_Injection.md) | beenuar/AiSOC |
 | Critical (3.1) | [Arbitrary File Copy and Path Traversal Write via `files/save-uploaded-file` in DbGate](dbgate_save_uploaded_file_path_traversal.md) | dbgate/dbgate |
 | Critical (3.1) | [Arbitrary File Read/Write via `file://` Protocol in DbGate jsldata Controller](dbgate_jsldata_file_read_write.md) | dbgate/dbgate |
@@ -35,9 +36,11 @@ verification output, impact analysis, and remediation guidance.
 | High (3.1) | [Termix 2.9.1 File-Manager transferToHost Arbitrary File Write on the Termix Server](Termix_FileManager_transferToHost_Arbitrary_File_Write.md) | Termix-SSH/Termix |
 | Critical (3.1) | [Unauthenticated Bilibili Session-Credential Export in OpenBiliClaw Default Deployment](openbiliclaw_unauth_bilibili_cookie_export.md) | whiteguo233/OpenBiliClaw |
 | Critical (3.1) | [Unauthenticated Configuration Tampering in OpenBiliClaw Enables LLM Traffic Hijacking and an Arbitrary-Process Backdoor](openbiliclaw_unauth_config_tamper_rce.md) | whiteguo233/OpenBiliClaw |
+| High (3.1) | [Unauthenticated Loopback Shell-Terminal Spawn and `/mux` Command Injection in Agent Orchestrator Lead to Remote Code Execution](agentorchestrator_shell_terminal_spawn_rce.md) | Untrivial-ai/agent-orchestrator |
+| High (3.1) | [Unauthenticated Mobile Enable Endpoint in Agent Orchestrator Returns the Plaintext Connection Password to Browser Content and Opens Remote Access](agentorchestrator_mobile_password_tunnel.md) | Untrivial-ai/agent-orchestrator |
 | High (3.1) | [Unauthenticated Provider OAuth Authorization Enables Arbitrary User Binding and Attacker-Controlled Redirect in open-wearables](OpenWearables_OAuth_Unauthenticated_Bind_Open_Redirect.md) | the-momentum/open-wearables |
 | High (3.1) | [Unauthenticated SSRF via Client-Controlled `ollamaHost` in big-AGI llmOllama tRPC Procedures](BigAGI_llmOllama_Unauthenticated_SSRF.md) | enricoros/big-AGI |
 | High (3.1) | [WebSocket-for-Python (ws4py) wss Client TLS Certificate and Hostname Verification Disabled by Default](WebSocket_for_Python_wss_TLS_Certificate_Validation_Disabled_by_Default.md) | Lawouach/WebSocket-for-Python |
 | Critical (3.1) | [Zilla http-filesystem Binding Unauthenticated Path Traversal](Zilla_Http_Filesystem_Binding_Path_Traversal.md) | aklivity/zilla |
 
-Total: 33 advisories.
+Total: 36 advisories.
