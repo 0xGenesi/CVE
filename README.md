@@ -18,6 +18,7 @@ verification output, impact analysis, and remediation guidance.
 | Critical (3.1) | [ConvertX v0.19.0 Hardcoded Default JWT Secret — Full Authentication Bypass](ConvertX_Hardcoded_Default_JWT_Secret_Auth_Bypass.md) | C4illin/ConvertX |
 | Critical (3.1) | [Documented Default Administrator Credentials Lead to Unauthenticated Platform Takeover in open-wearables](OpenWearables_Default_Admin_Credentials_Takeover.md) | the-momentum/open-wearables |
 | High (3.1) | [Forged Strava Webhook Events Enable Unauthenticated Health-Data Deletion and Connection Revocation in open-wearables](OpenWearables_Strava_Webhook_Forged_Event_Data_Destruction.md) | the-momentum/open-wearables |
+| High (3.1) | [GraphQL WebSocket `connection_init` Authenticates as Admin Under SIMPLE_LOGIN in Suwayomi-Server](suwayomi_ws_connection_init_admin_bypass.md) | Suwayomi/Suwayomi-Server |
 | Critical (3.1) | [Hardcoded Default JWT Signing Secret in Securo Enables Offline Superuser Token Forgery](securo_backend_default_jwt_secret.md) | securo-finance/securo |
 | High (3.1) | [Incomplete scheme validation in October CMS ResizeImages enables PHP stream wrapper injection](October_CMS_Stream_Wrapper_Injection.md) | octobercms/october |
 | High (3.1) | [Knip Workspaces Configuration Path Traversal Leading to Arbitrary File Deletion and Overwrite via `knip --fix`](Knip_Workspaces_Config_Path_Traversal_File_Deletion_Overwrite.md) | webpro/knip |
@@ -30,6 +31,7 @@ verification output, impact analysis, and remediation guidance.
 | High (3.1) | [Path Traversal in `runners/files` via Unvalidated `runid` in DbGate](dbgate_runners_files_path_traversal.md) | dbgate/dbgate |
 | High (3.1) | [Path Traversal in MediaUploadTrait::deleteFile() leading to arbitrary file deletion](Grav_CMS_Path_Traversal_Arbitrary_File_Deletion.md) | getgrav/grav |
 | Critical (3.1) | [Public Default MCP JWT Secret and Unauthenticated `/mcp` Exposure in Securo Enable Cross-User Financial Data Access](securo_mcp_default_jwt_secret.md) | securo-finance/securo |
+| High (3.1) | [REST Extension Install/Uninstall Endpoints Skip the Multi-User Permission Checks, Enabling Arbitrary Code Execution via Crafted Extension in Suwayomi-Server](suwayomi_rest_extension_install_permission_bypass.md) | Suwayomi/Suwayomi-Server |
 | High (3.1) | [Server-Side LLM API Key Exfiltration via Client-Controlled `oaiHost` with Environment-Key Fallback in big-AGI](BigAGI_llmOpenAI_Env_API_Key_Exfiltration.md) | enricoros/big-AGI |
 | High (3.1) | [SSRF bypass in October CMS ResizeImages via IPv6-mapped IPv4 address encoding](October_CMS_SSRF_IPv6_Mapped_IPv4_Bypass.md) | octobercms/october |
 | High (3.1) | [Static Safety-Check Bypass in AI Strategy Code Pipeline Leads to Remote Code Execution in TickFlow Stock Panel](tickstockpanel_strategy_validation_bypass_rce.md) | shy3130/tick-stock-panel |
@@ -44,4 +46,4 @@ verification output, impact analysis, and remediation guidance.
 | High (3.1) | [WebSocket-for-Python (ws4py) wss Client TLS Certificate and Hostname Verification Disabled by Default](WebSocket_for_Python_wss_TLS_Certificate_Validation_Disabled_by_Default.md) | Lawouach/WebSocket-for-Python |
 | Critical (3.1) | [Zilla http-filesystem Binding Unauthenticated Path Traversal](Zilla_Http_Filesystem_Binding_Path_Traversal.md) | aklivity/zilla |
 
-Total: 37 advisories.
+Total: 39 advisories.
