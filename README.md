@@ -33,6 +33,7 @@ verification output, impact analysis, and remediation guidance.
 | High (3.1) | [Server-Side LLM API Key Exfiltration via Client-Controlled `oaiHost` with Environment-Key Fallback in big-AGI](BigAGI_llmOpenAI_Env_API_Key_Exfiltration.md) | enricoros/big-AGI |
 | High (3.1) | [SSRF bypass in October CMS ResizeImages via IPv6-mapped IPv4 address encoding](October_CMS_SSRF_IPv6_Mapped_IPv4_Bypass.md) | octobercms/october |
 | High (3.1) | [Static Safety-Check Bypass in AI Strategy Code Pipeline Leads to Remote Code Execution in TickFlow Stock Panel](tickstockpanel_strategy_validation_bypass_rce.md) | shy3130/tick-stock-panel |
+| Critical (3.1) | [Stored Cross-Site Scripting in HortusFox Chat Messages (AJAX Render Path) Leads to Administrator Session Hijacking](hortusfox_chat_stored_xss.md) | danielbrendel/hortusfox-web |
 | High (3.1) | [Termix 2.9.1 File-Manager transferToHost Arbitrary File Write on the Termix Server](Termix_FileManager_transferToHost_Arbitrary_File_Write.md) | Termix-SSH/Termix |
 | Critical (3.1) | [Unauthenticated Bilibili Session-Credential Export in OpenBiliClaw Default Deployment](openbiliclaw_unauth_bilibili_cookie_export.md) | whiteguo233/OpenBiliClaw |
 | Critical (3.1) | [Unauthenticated Configuration Tampering in OpenBiliClaw Enables LLM Traffic Hijacking and an Arbitrary-Process Backdoor](openbiliclaw_unauth_config_tamper_rce.md) | whiteguo233/OpenBiliClaw |
@@ -43,4 +44,4 @@ verification output, impact analysis, and remediation guidance.
 | High (3.1) | [WebSocket-for-Python (ws4py) wss Client TLS Certificate and Hostname Verification Disabled by Default](WebSocket_for_Python_wss_TLS_Certificate_Validation_Disabled_by_Default.md) | Lawouach/WebSocket-for-Python |
 | Critical (3.1) | [Zilla http-filesystem Binding Unauthenticated Path Traversal](Zilla_Http_Filesystem_Binding_Path_Traversal.md) | aklivity/zilla |
 
-Total: 36 advisories.
+Total: 37 advisories.
